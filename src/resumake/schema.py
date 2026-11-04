@@ -45,9 +45,26 @@ SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["company", "position"],
+                # Either a single role (`position`) or several roles at one company.
+                "required": ["company"],
+                "anyOf": [{"required": ["position"]}, {"required": ["roles"]}],
                 "additionalProperties": False,
-                "properties": {"company": _str, "position": _str, "url": _str, **_dated},
+                "properties": {
+                    "company": _str,
+                    "position": _str,
+                    "url": _str,
+                    **_dated,
+                    "roles": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "required": ["position"],
+                            "additionalProperties": False,
+                            "properties": {"position": _str, **_dated},
+                        },
+                    },
+                },
             },
         },
         "projects": {
@@ -80,7 +97,12 @@ SCHEMA = {
                 "type": "object",
                 "required": ["name"],
                 "additionalProperties": False,
-                "properties": {"name": _str, "keywords": _str_list},
+                "properties": {
+                    "name": _str,
+                    # A flat list, or a list of groups rendered as "a, b | c, d".
+                    "keywords": {"type": "array", "items": {"anyOf": [_str, _str_list]}},
+                    "note": _str,
+                },
             },
         },
         "certifications": {
@@ -90,6 +112,21 @@ SCHEMA = {
                 "required": ["name"],
                 "additionalProperties": False,
                 "properties": {"name": _str, "issuer": _str, "date": _date, "url": _str},
+            },
+        },
+        # The job a tailored resume targets. Kept for your records; never rendered.
+        "job": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "title": _str,
+                "company": _str,
+                "url": _str,
+                "applied": _date,
+                "status": _str,
+                "notes": _str,
+                # Paste the posting here too: links rot once a role is filled.
+                "description": _str,
             },
         },
         "layout": {

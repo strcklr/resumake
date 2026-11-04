@@ -8,7 +8,7 @@ publish fresh builds every time you merge to `main`.
 resumes/
 ├── default.yml                   # your base resume
 └── tailored/
-    └── backend-platform.yml      # extends default.yml, overrides a few fields
+    └── example-platform.yml      # extends default.yml, overrides a few fields
 ```
 
 ## Quick start
@@ -21,8 +21,8 @@ resumake build resumes/default.yml -f pdf,docx -o out/
 ```
 
 Outputs are named after the file's path under `resumes/`:
-`resumes/default.yml` → `dist/default.pdf`, `resumes/tailored/backend-platform.yml` →
-`dist/tailored-backend-platform.pdf`, and so on. Set `layout.output_name` to override.
+`resumes/default.yml` → `dist/default.pdf`, `resumes/tailored/example-platform.yml` →
+`dist/tailored-example-platform.pdf`, and so on. Set `layout.output_name` to override.
 
 PDF output uses [WeasyPrint](https://weasyprint.org), which needs Pango installed
 (`apt install libpango-1.0-0 libpangoft2-1.0-0` on Debian/Ubuntu, `brew install pango` on macOS).
@@ -46,6 +46,23 @@ layout:
   sections: [summary, skills, work, education]   # reorder or drop sections
 ```
 
+### Recording the job a variant targets
+
+Add a `job:` block to keep the posting with the resume you sent. It's checked against the schema
+but **never rendered** in any output format:
+
+```yaml
+job:
+  title: Staff Software Engineer, Platform
+  company: Example Co
+  url: https://example.com/careers/12345
+  applied: 2026-11-04
+  status: applied          # free text: applied, interviewing, rejected, offer...
+  notes: Referred by a former teammate.
+  description: |           # paste the posting: links stop working once a role is filled
+    ...
+```
+
 `extends` can also be a list (merged left to right), and chains can be any depth.
 Files or folders whose names start with `_` (e.g. `resumes/_shared/contact.yml`) are treated as
 shared fragments: you can `extends:` them, but they aren't built on their own.
@@ -63,35 +80,69 @@ The full schema is in [`src/resumake/schema.py`](src/resumake/schema.py); see
 | `education[]` | `institution` (required), `degree`, `area`, `score`, `location`, `start`, `end`, `highlights[]` |
 | `skills[]` | `name` (required), `keywords[]` |
 | `certifications[]` | `name` (required), `issuer`, `date`, `url` |
+| `job` | Not rendered. `title`, `company`, `url`, `applied`, `status`, `notes`, `description` |
 | `layout` | `sections` (order; omitted sections are hidden), `titles` (rename headings), `output_name` |
 
 Dates can be `2021`, `2021-03` or `2021-03-15` and render as `2021` / `Mar 2021`. An entry with a
 `start` and no `end` renders as "… – Present".
 
+## Keeping your real resumes private
+
+This repo holds the tool and fictional sample resumes. Keep your own resumes in a separate
+**private** repository that uses resumake's reusable workflow. Tool improvements reach it
+automatically, and nothing personal ever lands here.
+
+1. Create an empty private repo (e.g. `you/resumes`).
+2. Copy the contents of [`template/`](template/) into it, including `template/.github/`.
+3. Add `resumes/default.yml` (start from this repo's sample) and one file per application in
+   `resumes/tailored/`.
+
+The template's workflow is just:
+
+```yaml
+jobs:
+  build:
+    uses: strcklr/resumake/.github/workflows/build-resumes.yml@main
+    permissions:
+      contents: write
+    with:
+      publish-release: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+```
+
+Swap `@main` for a tag or commit SHA if you'd rather take tool updates on your own schedule.
+Releases in a private repo are private too: downloading them requires being signed in with access.
+
 ## CI and where outputs live
 
-[`.github/workflows/build.yml`](.github/workflows/build.yml) runs on every pull request and on
-every push to `main` that touches resumes or code. It validates, runs the tests and builds all
-formats, then:
+[`.github/workflows/build-resumes.yml`](.github/workflows/build-resumes.yml) is a reusable
+workflow. It validates and builds every resume in the calling repo, then:
 
 - **Pull requests**: uploads `dist/` as a workflow artifact (kept 14 days) so you can preview the
   output before merging. Find it on the run's summary page.
-- **Merges to `main`**: uploads the artifact (kept 90 days) **and** publishes a GitHub Release
-  tagged `resume-YYYYMMDD-<sha>` with every file attached. Releases are permanent, so you keep a
-  history of every version you've sent out.
+- **Merges to `main`** (when `publish-release` is on): uploads the artifact (kept 90 days) **and**
+  publishes a GitHub Release tagged `resume-YYYYMMDD-<sha>` with every file attached. Releases
+  are permanent, so you keep a history of every version you've sent out. Each one is marked
+  *latest*, so `https://github.com/<owner>/<repo>/releases/latest/download/default.pdf` always
+  points at the newest build.
 
-Each new release is marked *latest*, which gives you stable links that always point at the
-newest build:
+In this repo, [`.github/workflows/build.yml`](.github/workflows/build.yml) calls the same
+workflow with the tests turned on and releases turned off.
 
-```
-https://github.com/strcklr/resumake/releases/latest/download/default.pdf
-https://github.com/strcklr/resumake/releases/latest/download/tailored-backend-platform.docx
-```
+| Input | Default | |
+|---|---|---|
+| `resumes` | `resumes` | Directory or file to build |
+| `publish-release` | `false` | Publish a GitHub Release |
+| `install` | `git+https://github.com/strcklr/resumake@main` | pip requirement for resumake |
+| `python-version` | `3.12` | |
 
 ## Customizing the look
 
 - HTML and PDF share one template and stylesheet: `src/resumake/templates/resume.html.j2` and
   `style.css` (page size and margins are in the `@page` rule).
+- Text is set in Georgia. Where Georgia isn't installed (e.g. Linux CI), the bundled
+  [Gelasio](https://github.com/SorkinType/Gelasio) is used instead. It's metric-compatible with
+  Georgia, so line breaks and page count stay the same. It's licensed under the SIL OFL
+  (`src/resumake/templates/fonts/OFL.txt`).
 - Markdown: `src/resumake/templates/resume.md.j2`.
 - Word: built in code in `src/resumake/renderers/docx.py` so the result is a normal, editable
   Word document.

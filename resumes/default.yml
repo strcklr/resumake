@@ -1,10 +1,12 @@
-# The base resume. Tailored variants in resumes/tailored/ `extends:` this file
-# and override only what they need. Replace the sample content with your own.
+# Sample base resume (fictional). Tailored variants in resumes/tailored/
+# `extends:` this file and override only what they need.
+#
+# To keep your real resumes private, put them in your own private repo instead
+# of editing this one. See template/README.md.
 basics:
   name: Jordan Example
   label: Senior Software Engineer
   email: jordan@example.com
-  phone: "+1 (555) 010-0199"
   location: Columbus, OH
   website: https://jordan.example.com
   profiles:
@@ -17,15 +19,34 @@ basics:
     services and developer tooling. Comfortable owning systems end to end,
     from design docs to on-call.
 
+skills:
+  - name: Languages
+    # Groups render as "Python, Go (proficient) | TypeScript, Rust (familiar)".
+    keywords:
+      - [Python, Go (proficient)]
+      - [TypeScript, Rust (familiar)]
+  - name: Infrastructure
+    keywords: [AWS, Kubernetes, Terraform, Kafka, PostgreSQL]
+  - name: AI Tools
+    keywords: [Claude, GitHub Copilot]
+    note: daily use for code review and debugging
+
 work:
+  # Several roles at one company: the company is the heading, roles beneath it.
   - company: Acme Analytics
-    position: Senior Software Engineer
     location: Remote
-    start: 2021-06
-    highlights:
-      - Led the migration of the event ingestion pipeline to Kafka, cutting p99 latency by 60%.
-      - Designed a multi-tenant query service handling 40k requests per second.
-      - Mentored four engineers and ran the backend interview loop.
+    roles:
+      - position: Senior Software Engineer
+        start: 2023-02
+        highlights:
+          - Led the migration of the event ingestion pipeline to Kafka, cutting p99 latency by 60%.
+          - Mentored four engineers and ran the backend interview loop.
+      - position: Software Engineer
+        start: 2021-06
+        end: 2023-02
+        highlights:
+          - Designed a multi-tenant query service handling 40k requests per second.
+  # A single role can also be written flat.
   - company: Brightside Health
     position: Software Engineer
     location: Columbus, OH
@@ -34,13 +55,6 @@ work:
     highlights:
       - Built HIPAA-compliant patient messaging used by 300+ clinics.
       - Introduced contract testing between 12 services, halving integration incidents.
-  - company: Initech
-    position: Junior Developer
-    location: Dayton, OH
-    start: 2016-07
-    end: 2017-12
-    highlights:
-      - Maintained internal billing tools in Python and PostgreSQL.
 
 projects:
   - name: resumake
@@ -48,20 +62,10 @@ projects:
     summary: Builds this resume from YAML into PDF, Word, HTML and Markdown.
     keywords: [Python, GitHub Actions]
 
-skills:
-  - name: Languages
-    keywords: [Python, Go, TypeScript, SQL]
-  - name: Infrastructure
-    keywords: [AWS, Kubernetes, Terraform, Kafka, PostgreSQL]
-  - name: Practices
-    keywords: [System design, Observability, CI/CD, Mentoring]
-
 education:
   - institution: The Ohio State University
-    degree: B.S.
-    area: Computer Science and Engineering
+    degree: B.S. in Computer Science and Engineering
     location: Columbus, OH
-    start: 2012
     end: 2016
 
 certifications:

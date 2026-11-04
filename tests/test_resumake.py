@@ -45,7 +45,7 @@ def test_circular_extends(tmp_path):
 
 def test_validation_reports_path(tmp_path):
     f = write(tmp_path / "bad.yml", {"basics": {"name": "A"}, "work": [{"company": "X"}]})
-    with pytest.raises(ResumeError, match="work.0: 'position' is a required property"):
+    with pytest.raises(ResumeError, match="work.0: needs 'position' or 'roles'"):
         load_resume(f)
 
 
@@ -98,16 +98,34 @@ def test_html_escapes_content():
 
 
 def test_tailored_variant_overrides_default():
-    data = load_resume(RESUMES / "tailored" / "backend-platform.yml")
+    data = load_resume(RESUMES / "tailored" / "example-platform.yml")
     md = markdown.render_string(build_context(data))
-    assert "Backend & Platform Engineer" in md
+    assert "**Backend & Platform Engineer**" in md
     assert "## Projects" not in md
-    assert md.index("## Skills") < md.index("## Experience")
+    assert md.index("## Professional Experience") < md.index("## Skills")
+    assert "Example Co" not in md  # the job block is never rendered
+
+
+def test_grouped_roles_and_skill_groups():
+    data = {
+        "basics": {"name": "A"},
+        "work": [{"company": "Co", "location": "MN", "roles": [
+            {"position": "Senior", "start": "2022-08"},
+            {"position": "Junior", "start": "2021-06", "end": "2022-08", "highlights": ["Did x"]},
+        ]}],
+        "skills": [{"name": "Lang", "keywords": [["Kotlin", "Java"], ["C++"]], "note": "mostly backend"}],
+    }
+    ctx = build_context(data)
+    work = ctx["sections"][0]["entries"][0]
+    assert (work["title"], work["org"]) == ("Co", "MN")
+    assert [(r["title"], r["dates"]) for r in work["roles"]] == [
+        ("Senior", "Aug 2022 – Present"), ("Junior", "Jun 2021 – Aug 2022")]
+    assert ctx["sections"][1]["entries"][0]["text"] == "Kotlin, Java\u00a0 |\u00a0 C++ — mostly backend"
 
 
 def test_build_all_formats(tmp_path):
     assert main(["build", str(RESUMES), "-o", str(tmp_path)]) == 0
-    for name in ("default", "tailored-backend-platform"):
+    for name in ("default", "tailored-example-platform"):
         for ext in ("pdf", "docx", "html", "md"):
             assert (tmp_path / f"{name}.{ext}").stat().st_size > 0
     assert (tmp_path / "default.pdf").read_bytes().startswith(b"%PDF")
@@ -117,3 +135,24 @@ def test_build_all_formats(tmp_path):
 
 def test_sample_resumes_validate():
     assert main(["validate", str(RESUMES)]) == 0
+
+
+def test_job_block_is_never_rendered(tmp_path):
+    f = write(tmp_path / "r.yml", {
+        "basics": {"name": "A"},
+        "job": {"title": "Secret Role", "url": "https://jobs.example/123",
+                "description": "Posting text", "notes": "private"},
+    })
+    ctx = build_context(load_resume(f))
+    for out in (html.render_string(ctx), markdown.render_string(ctx)):
+        for value in ("Secret Role", "jobs.example", "Posting text", "private"):
+            assert value not in out
+    assert main(["build", str(f), "-f", "docx", "-o", str(tmp_path / "out")]) == 0
+    text = "\n".join(p.text for p in Document(tmp_path / "out" / "r.docx").paragraphs)
+    assert "Secret Role" not in text
+
+
+def test_job_block_rejects_unknown_keys(tmp_path):
+    f = write(tmp_path / "r.yml", {"basics": {"name": "A"}, "job": {"link": "x"}})
+    with pytest.raises(ResumeError, match="job"):
+        load_resume(f)

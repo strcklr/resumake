@@ -84,10 +84,19 @@ def validate_resume(data: dict, source: Path | str = "<resume>") -> None:
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
     if errors:
         lines = [
-            f"  - {'.'.join(str(p) for p in e.absolute_path) or '<root>'}: {e.message}"
+            f"  - {'.'.join(str(p) for p in e.absolute_path) or '<root>'}: {_message(e)}"
             for e in errors
         ]
         raise ResumeError(f"{source}: invalid resume:\n" + "\n".join(lines))
+
+
+def _message(error: jsonschema.ValidationError) -> str:
+    """Make "requires one of these keys" schemas read better than jsonschema's default."""
+    options = error.schema.get("anyOf", []) if error.validator == "anyOf" else []
+    if options and all(set(o) == {"required"} for o in options):
+        keys = " or ".join(repr(k) for o in options for k in o["required"])
+        return f"needs {keys}"
+    return error.message
 
 
 @dataclass(frozen=True)

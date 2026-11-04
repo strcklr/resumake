@@ -17,11 +17,11 @@
 {{ section.text }}
 {% elif section.key == "skills" %}
 {% for s in section.entries %}
-- **{{ s.name }}:** {{ s.keywords | join(", ") }}
+- **{{ s.name }}:** {{ s.text }}
 {% endfor %}
 {% else %}
 {% for item in section.entries %}
-### {{ link(item.title, item.title_url) }}{% if item.org %} · {{ link(item.org, item.org_url) }}{% endif %}
+### {{ link(item.title, item.title_url) }}{% if item.org %} — {{ link(item.org, item.org_url) }}{% endif %}
 
 
 {% set meta = [item.subtitle, item.dates] | select | list %}
@@ -43,6 +43,24 @@
 _{{ item.keywords | join(" · ") }}_
 
 {% endif %}
+{% for role in item.roles %}
+#### {{ role.title }}
+
+
+{% set meta = [role.subtitle, role.dates] | select | list %}
+{% if meta %}
+*{{ meta | join(" · ") }}*
+
+{% endif %}
+{% if role.summary %}
+{{ role.summary }}
+
+{% endif %}
+{% for h in role.highlights %}
+- {{ h }}
+{% endfor %}
+
+{% endfor %}
 {% endfor %}
 {% endif %}
 {% endfor %}

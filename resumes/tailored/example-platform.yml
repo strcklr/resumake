@@ -1,0 +1,35 @@
+# Sample tailored variant: inherits everything from default.yml and changes
+# only what's below.
+#   - mappings merge key by key (basics.label replaces just the headline)
+#   - lists replace the parent's list entirely (skills, work, ...)
+#   - `key: null` removes a key (here: the projects section)
+extends: ../default.yml
+
+# The role this version targets. Validated, but never rendered in any output.
+job:
+  title: Staff Platform Engineer
+  company: Example Co
+  url: https://example.com/careers/staff-platform-engineer
+  applied: 2026-11-04
+  status: applied
+  notes: Referred by a former teammate.
+  description: |
+    Paste the full job posting here so you still have it after the
+    listing is taken down.
+
+basics:
+  label: Backend & Platform Engineer
+
+projects: null
+
+skills:
+  - name: Platform
+    keywords: [Kubernetes, Terraform, Kafka, AWS (EKS, MSK, RDS)]
+  - name: Languages
+    keywords: [Go, Python, SQL]
+
+layout:
+  # Lead with experience, and rename a heading.
+  sections: [summary, work, skills, certifications, education]
+  titles:
+    work: Professional Experience

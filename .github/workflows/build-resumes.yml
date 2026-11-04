@@ -1,0 +1,108 @@
+# Reusable workflow: validate and build every resume in a repository, upload
+# the outputs as an artifact, and optionally publish them as a GitHub Release.
+#
+# Call it from any repo (public or private) that holds a resumes/ folder:
+#
+#   jobs:
+#     build:
+#       uses: strcklr/resumake/.github/workflows/build-resumes.yml@main
+#       permissions:
+#         contents: write
+#       with:
+#         publish-release: ${{ github.event_name != 'pull_request' }}
+#
+# See template/ for a complete caller repository.
+name: Build resumes (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      resumes:
+        description: Directory (or file) of resumes to build.
+        type: string
+        default: resumes
+      install:
+        description: pip requirement for resumake. Use "." to install from the calling repo itself.
+        type: string
+        default: git+https://github.com/strcklr/resumake@main
+      run-tests:
+        description: Run the resumake test suite (only meaningful inside resumake).
+        type: boolean
+        default: false
+      publish-release:
+        description: Publish the outputs as a GitHub Release marked latest.
+        type: boolean
+        default: false
+      python-version:
+        type: string
+        default: "3.12"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # publishing releases
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install system dependencies
+        # Pango for WeasyPrint (PDF). Fonts are bundled in the package.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
+      - name: Install resumake
+        env:
+          REQUIREMENT: ${{ inputs.install }}
+          WITH_TESTS: ${{ inputs.run-tests }}
+        run: |
+          if [ "$WITH_TESTS" = "true" ]; then
+            pip install "${REQUIREMENT}[dev]"
+          else
+            pip install "$REQUIREMENT"
+          fi
+
+      - name: Validate resumes
+        run: resumake validate "${{ inputs.resumes }}"
+
+      - name: Test
+        if: inputs.run-tests
+        run: pytest -q
+
+      - name: Build all formats
+        run: resumake build "${{ inputs.resumes }}" --format all --out dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumes-${{ github.sha }}
+          path: dist/
+          retention-days: ${{ github.event_name == 'pull_request' && 14 || 90 }}
+
+      - name: Publish GitHub Release
+        if: inputs.publish-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="resume-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
+          {
+            echo "Resumes built from ${GITHUB_SHA::7}."
+            echo
+            echo "| Variant | Files |"
+            echo "|---|---|"
+            for pdf in dist/*.pdf; do
+              v=$(basename "$pdf" .pdf)
+              echo "| \`$v\` | $(for e in pdf docx html md; do printf '[%s](https://github.com/%s/releases/download/%s/%s.%s) ' "$e" "$GITHUB_REPOSITORY" "$tag" "$v" "$e"; done)|"
+            done
+          } > notes.md
+          gh release create "$tag" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Resumes $(date -u +%Y-%m-%d) (${GITHUB_SHA::7})" \
+            --notes-file notes.md \
+            --target "$GITHUB_SHA" \
+            --latest

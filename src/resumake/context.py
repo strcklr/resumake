@@ -65,6 +65,26 @@ def _join(*parts: Any, sep: str = " · ") -> str:
     return sep.join(str(p) for p in parts if p)
 
 
+def _skill_text(skill: dict) -> str:
+    groups = [k if isinstance(k, list) else [k] for k in skill.get("keywords", [])]
+    if groups and all(len(g) == 1 for g in groups):
+        text = ", ".join(g[0] for g in groups)
+    else:
+        # Two spaces either side, like the Word original; NBSPs keep HTML from collapsing them.
+        text = "\u00a0 |\u00a0 ".join(", ".join(g) for g in groups)
+    return _join(text, skill.get("note"), sep=" — ")
+
+
+def _role(item: dict) -> dict:
+    return {
+        "title": item["position"],
+        "subtitle": item.get("location", ""),
+        "dates": date_range(item),
+        "summary": (item.get("summary") or "").strip(),
+        "highlights": item.get("highlights", []),
+    }
+
+
 def _entry(key: str, item: dict) -> dict:
     """Normalize work/projects/education/certifications into one entry shape.
 
@@ -81,14 +101,29 @@ def _entry(key: str, item: dict) -> dict:
         "summary": (item.get("summary") or "").strip(),
         "highlights": item.get("highlights", []),
         "keywords": item.get("keywords", []),
+        "roles": [],
     }
-    if key == "work":
+    if key == "work" and "roles" in item:
+        # Company as the heading, each role listed beneath it.
+        entry.update(
+            title=item["company"],
+            title_url=item.get("url"),
+            org=item.get("location", ""),
+            subtitle="",
+            dates=date_range(item) if ("start" in item or "end" in item) else "",
+            roles=[_role(r) for r in item["roles"]],
+        )
+    elif key == "work":
         entry.update(title=item["position"], org=item["company"], org_url=item.get("url"))
     elif key == "education":
-        degree = _join(item.get("degree"), item.get("area"), sep=", ")
+        # "State University — Columbus, OH" / "B.S. in Computer Science, 2016"
         entry.update(
             title=item["institution"],
-            subtitle=_join(degree, item.get("location"), item.get("score")),
+            org=item.get("location", ""),
+            subtitle=_join(
+                item.get("degree"), item.get("area"), entry["dates"], item.get("score"), sep=", "
+            ),
+            dates="",
         )
     else:  # projects, certifications
         entry.update(title=item["name"], title_url=item.get("url"), org=item.get("issuer", ""))
@@ -110,7 +145,7 @@ def build_context(data: dict) -> dict:
         if not items:
             continue
         if key == "skills":
-            entries = [{"name": s["name"], "keywords": s.get("keywords", [])} for s in items]
+            entries = [{"name": s["name"], "text": _skill_text(s)} for s in items]
         else:
             entries = [_entry(key, item) for item in items]
         sections.append({"key": key, "title": titles[key], "entries": entries})

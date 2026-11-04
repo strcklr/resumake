@@ -16,7 +16,7 @@
     {% if basics.label %}<p class="label">{{ basics.label }}</p>{% endif %}
     {% if contact %}
     <ul class="contact">
-      {% for c in contact %}<li>{% if not loop.first %}<span class="sep" aria-hidden="true">·</span>{% endif %}{{ link(c.text, c.url) }}</li>{% endfor %}
+      {% for c in contact %}<li>{% if not loop.first %}<span class="sep" aria-hidden="true">•</span>{% endif %}{{ link(c.text, c.url) }}</li>{% endfor %}
     </ul>
     {% endif %}
   </header>
@@ -27,16 +27,16 @@
     {% if section.key == "summary" %}
       <p>{{ section.text }}</p>
     {% elif section.key == "skills" %}
-      <dl class="skills">
+      <ul class="skills">
         {% for s in section.entries %}
-        <div><dt>{{ s.name }}</dt><dd>{{ s.keywords | join(", ") }}</dd></div>
+        <li><strong>{{ s.name }}:</strong> {{ s.text }}</li>
         {% endfor %}
-      </dl>
+      </ul>
     {% else %}
       {% for item in section.entries %}
       <article class="entry">
         <div class="entry-head">
-          <h3>{{ link(item.title, item.title_url) }}{% if item.org %} <span class="org">· {{ link(item.org, item.org_url) }}</span>{% endif %}</h3>
+          <h3>{{ link(item.title, item.title_url) }}{% if item.org %}<span class="org"><span class="org-sep">—</span>{{ link(item.org, item.org_url) }}</span>{% endif %}</h3>
           {% if item.dates %}<span class="dates">{{ item.dates }}</span>{% endif %}
         </div>
         {% if item.subtitle %}<p class="sub">{{ item.subtitle }}</p>{% endif %}
@@ -45,6 +45,19 @@
         <ul>{% for h in item.highlights %}<li>{{ h }}</li>{% endfor %}</ul>
         {% endif %}
         {% if item.keywords %}<p class="keywords">{{ item.keywords | join(" · ") }}</p>{% endif %}
+        {% for role in item.roles %}
+        <div class="role">
+          <div class="entry-head">
+            <h4>{{ role.title }}</h4>
+            {% if role.dates %}<span class="dates">{{ role.dates }}</span>{% endif %}
+          </div>
+          {% if role.subtitle %}<p class="sub">{{ role.subtitle }}</p>{% endif %}
+          {% if role.summary %}<p>{{ role.summary }}</p>{% endif %}
+          {% if role.highlights %}
+          <ul>{% for h in role.highlights %}<li>{{ h }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+        {% endfor %}
       </article>
       {% endfor %}
     {% endif %}

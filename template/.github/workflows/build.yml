@@ -1,0 +1,23 @@
+# Builds the resumes in this repo with resumake. Tool updates arrive
+# automatically: this calls resumake's workflow on its main branch.
+name: Build resumes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths: ["resumes/**", ".github/workflows/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: strcklr/resumake/.github/workflows/build-resumes.yml@main
+    permissions:
+      contents: write
+    with:
+      # Release on merges to main; pull requests only get a preview artifact.
+      publish-release: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
