@@ -156,3 +156,10 @@ def test_job_block_rejects_unknown_keys(tmp_path):
     f = write(tmp_path / "r.yml", {"basics": {"name": "A"}, "job": {"link": "x"}})
     with pytest.raises(ResumeError, match="job"):
         load_resume(f)
+
+
+def test_project_tech_stack_is_subtitle():
+    ctx = build_context({"basics": {"name": "A"}, "projects": [
+        {"name": "P", "url": "https://x.dev", "keywords": ["Go", "DynamoDB"], "start": 2020, "end": 2021}]})
+    entry = ctx["sections"][0]["entries"][0]
+    assert (entry["subtitle"], entry["keywords"], entry["dates"]) == ("Go, DynamoDB", [], "2020 – 2021")

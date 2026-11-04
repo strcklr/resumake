@@ -125,7 +125,15 @@ def _entry(key: str, item: dict) -> dict:
             ),
             dates="",
         )
-    else:  # projects, certifications
+    elif key == "projects":
+        # Tech stack goes under the project name: "Go, DynamoDB, Docker".
+        entry.update(
+            title=item["name"],
+            title_url=item.get("url"),
+            subtitle=_join(item.get("location"), ", ".join(item.get("keywords", []))),
+            keywords=[],
+        )
+    else:  # certifications
         entry.update(title=item["name"], title_url=item.get("url"), org=item.get("issuer", ""))
     return entry
 
