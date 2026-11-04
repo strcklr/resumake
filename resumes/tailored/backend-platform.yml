@@ -1,0 +1,27 @@
+# A variant tailored for a backend/platform role. It inherits everything from
+# the default resume and overrides only what's below:
+#   - mappings merge key by key (basics.label replaces just the label)
+#   - lists replace the parent's list entirely (work, skills, ...)
+#   - `key: null` removes a key (here: the projects section)
+extends: ../default.yml
+
+basics:
+  label: Backend & Platform Engineer
+  summary: >
+    Platform-focused backend engineer who builds high-throughput data
+    pipelines and the internal tooling that keeps them boring. 8 years
+    across Python and Go, with deep Kafka and Kubernetes experience.
+
+projects: null
+
+skills:
+  - name: Platform
+    keywords: [Kubernetes, Terraform, Kafka, AWS (EKS, MSK, RDS)]
+  - name: Languages
+    keywords: [Go, Python, SQL]
+  - name: Reliability
+    keywords: [SLOs, Prometheus, OpenTelemetry, Incident response]
+
+layout:
+  # Lead with skills for this audience.
+  sections: [summary, skills, work, certifications, education]

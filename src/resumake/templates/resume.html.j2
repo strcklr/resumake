@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ basics.name }}{% if basics.label %} — {{ basics.label }}{% endif %}</title>
+<style>
+{{ css | safe }}
+</style>
+</head>
+{% macro link(text, url) %}{% if url %}<a href="{{ url }}">{{ text }}</a>{% else %}{{ text }}{% endif %}{% endmacro %}
+<body>
+<main class="resume">
+  <header>
+    <h1>{{ basics.name }}</h1>
+    {% if basics.label %}<p class="label">{{ basics.label }}</p>{% endif %}
+    {% if contact %}
+    <ul class="contact">
+      {% for c in contact %}<li>{% if not loop.first %}<span class="sep" aria-hidden="true">·</span>{% endif %}{{ link(c.text, c.url) }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </header>
+
+  {% for section in sections %}
+  <section class="section-{{ section.key }}">
+    <h2>{{ section.title }}</h2>
+    {% if section.key == "summary" %}
+      <p>{{ section.text }}</p>
+    {% elif section.key == "skills" %}
+      <dl class="skills">
+        {% for s in section.entries %}
+        <div><dt>{{ s.name }}</dt><dd>{{ s.keywords | join(", ") }}</dd></div>
+        {% endfor %}
+      </dl>
+    {% else %}
+      {% for item in section.entries %}
+      <article class="entry">
+        <div class="entry-head">
+          <h3>{{ link(item.title, item.title_url) }}{% if item.org %} <span class="org">· {{ link(item.org, item.org_url) }}</span>{% endif %}</h3>
+          {% if item.dates %}<span class="dates">{{ item.dates }}</span>{% endif %}
+        </div>
+        {% if item.subtitle %}<p class="sub">{{ item.subtitle }}</p>{% endif %}
+        {% if item.summary %}<p>{{ item.summary }}</p>{% endif %}
+        {% if item.highlights %}
+        <ul>{% for h in item.highlights %}<li>{{ h }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if item.keywords %}<p class="keywords">{{ item.keywords | join(" · ") }}</p>{% endif %}
+      </article>
+      {% endfor %}
+    {% endif %}
+  </section>
+  {% endfor %}
+</main>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resumake"
+version = "0.1.0"
+description = "Build a resume from YAML into PDF, Word, HTML and Markdown."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "jsonschema>=4.17",
+    "python-docx>=1.1",
+    "weasyprint>=60",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+resumake = "resumake.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+resumake = ["templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

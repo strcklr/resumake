@@ -1,0 +1,48 @@
+{%- macro link(text, url) %}{% if url %}[{{ text }}]({{ url }}){% else %}{{ text }}{% endif %}{% endmacro -%}
+# {{ basics.name }}
+{% if basics.label %}
+
+**{{ basics.label }}**
+{% endif %}
+{% if contact %}
+
+{% for c in contact %}{{ link(c.text, c.url) }}{% if not loop.last %} · {% endif %}{% endfor %}
+
+{% endif %}
+{% for section in sections %}
+
+## {{ section.title }}
+
+{% if section.key == "summary" %}
+{{ section.text }}
+{% elif section.key == "skills" %}
+{% for s in section.entries %}
+- **{{ s.name }}:** {{ s.keywords | join(", ") }}
+{% endfor %}
+{% else %}
+{% for item in section.entries %}
+### {{ link(item.title, item.title_url) }}{% if item.org %} · {{ link(item.org, item.org_url) }}{% endif %}
+
+
+{% set meta = [item.subtitle, item.dates] | select | list %}
+{% if meta %}
+*{{ meta | join(" · ") }}*
+
+{% endif %}
+{% if item.summary %}
+{{ item.summary }}
+
+{% endif %}
+{% if item.highlights %}
+{% for h in item.highlights %}
+- {{ h }}
+{% endfor %}
+
+{% endif %}
+{% if item.keywords %}
+_{{ item.keywords | join(" · ") }}_
+
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
