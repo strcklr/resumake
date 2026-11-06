@@ -53,6 +53,9 @@ SCHEMA = {
                     "company": _str,
                     "position": _str,
                     "url": _str,
+                    # Tech used in the role. Metadata for other consumers (e.g. a
+                    # website's tags); the resume renderers ignore it.
+                    "keywords": _str_list,
                     **_dated,
                     "roles": {
                         "type": "array",
@@ -61,7 +64,7 @@ SCHEMA = {
                             "type": "object",
                             "required": ["position"],
                             "additionalProperties": False,
-                            "properties": {"position": _str, **_dated},
+                            "properties": {"position": _str, "keywords": _str_list, **_dated},
                         },
                     },
                 },

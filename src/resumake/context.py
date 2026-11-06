@@ -112,9 +112,10 @@ def _entry(key: str, item: dict) -> dict:
             subtitle="",
             dates=date_range(item) if ("start" in item or "end" in item) else "",
             roles=[_role(r) for r in item["roles"]],
+            keywords=[],  # work keywords are metadata for other tools, never rendered
         )
     elif key == "work":
-        entry.update(title=item["position"], org=item["company"], org_url=item.get("url"))
+        entry.update(title=item["position"], org=item["company"], org_url=item.get("url"), keywords=[])
     elif key == "education":
         # "State University — Columbus, OH" / "B.S. in Computer Science, 2016"
         entry.update(
