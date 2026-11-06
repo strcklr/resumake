@@ -123,6 +123,23 @@ def test_grouped_roles_and_skill_groups():
     assert ctx["sections"][1]["entries"][0]["text"] == "Kotlin, Java\u00a0 |\u00a0 C++ — mostly backend"
 
 
+def test_work_and_role_keywords_validate_but_are_not_rendered(tmp_path):
+    f = write(tmp_path / "r.yml", {
+        "basics": {"name": "A"},
+        "work": [
+            {"company": "Solo", "position": "Dev", "keywords": ["Zigzag"]},
+            {"company": "Co", "roles": [{"position": "Senior", "keywords": ["Quokka", "Flurb"]}]},
+        ],
+    })
+    ctx = build_context(load_resume(f))
+    for out in (html.render_string(ctx), markdown.render_string(ctx)):
+        for value in ("Zigzag", "Quokka", "Flurb"):
+            assert value not in out
+    assert main(["build", str(f), "-f", "docx", "-o", str(tmp_path / "out")]) == 0
+    text = "\n".join(p.text for p in Document(tmp_path / "out" / "r.docx").paragraphs)
+    assert "Quokka" not in text
+
+
 def test_build_all_formats(tmp_path):
     assert main(["build", str(RESUMES), "-o", str(tmp_path)]) == 0
     for name in ("default", "tailored-example-platform"):

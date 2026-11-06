@@ -75,7 +75,7 @@ The full schema is in [`src/resumake/schema.py`](src/resumake/schema.py); see
 | Key | Contents |
 |---|---|
 | `basics` | `name` (required), `label`, `email`, `phone`, `location`, `website`, `summary`, `profiles[]` (`network`, `username`, `url`) |
-| `work[]` | `company`, `position` (required), `url`, `location`, `start`, `end`, `summary`, `highlights[]` |
+| `work[]` | `company`, `position` (required), `url`, `location`, `start`, `end`, `summary`, `highlights[]`, `keywords[]` |
 | `projects[]` | `name` (required), `url`, `start`, `end`, `summary`, `highlights[]`, `keywords[]` |
 | `education[]` | `institution` (required), `degree`, `area`, `score`, `location`, `start`, `end`, `highlights[]` |
 | `skills[]` | `name` (required), `keywords[]` |
@@ -85,6 +85,10 @@ The full schema is in [`src/resumake/schema.py`](src/resumake/schema.py); see
 
 Dates can be `2021`, `2021-03` or `2021-03-15` and render as `2021` / `Mar 2021`. An entry with a
 `start` and no `end` renders as "… – Present".
+
+`keywords[]` on a `work[]` entry or on one of its `roles[]` lists the tech used there. It isn't
+rendered in any format; it's there for other tools that read the same file, such as a portfolio
+site that shows tags per role.
 
 ## Keeping your real resumes private
 
