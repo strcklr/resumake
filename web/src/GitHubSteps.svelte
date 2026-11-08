@@ -1,52 +1,48 @@
 <script lang="ts">
-  // Placeholders for the GitHub half of the plan. Nothing here talks to GitHub yet: the template
-  // repo, the GitHub App and the sign-in Worker don't exist. Until they do, step 1 points at the
-  // manual setup that works today (copying template/ from this repo).
-  const REPO = 'https://github.com/strcklr/resumake';
-  const TEMPLATE_DIR = `${REPO}/tree/main/template`;
-  const NEW_REPO = 'https://github.com/new';
+  // Keeping your resumes in your own private GitHub repo. Step 1 works today: it opens GitHub's
+  // "use this template" page for strcklr/resumes-template.
+  // Steps 2 and 3 arrive with GitHub sign-in (issue #5).
+  const TEMPLATE_REPO = 'https://github.com/strcklr/resumes-template';
+  const USE_TEMPLATE = 'https://github.com/new?template_name=resumes-template&template_owner=strcklr';
 </script>
 
 <section class="github">
-  <h2>Keep it in your own private GitHub repo</h2>
+  <h2>Keep your resumes in your own private GitHub repo</h2>
   <p>
-    Your resume lives in a private repo you own. Its GitHub Actions workflow builds the PDF and Word file on
-    every change, so nothing about your resume is stored on this site.
+    Your resumes live in a private repo you own. Its GitHub Actions workflow builds the PDF and Word file on every
+    change, and keeps every version you've sent as a release. Nothing about your resume is stored on this site.
   </p>
 
   <ol class="steps">
     <li>
       <h3>Create your resumes repo</h3>
       <p>
-        Soon: one button that copies a ready-made template repo. For now, set it up by hand:
+        Makes a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>: a
+        sample resume, a tailored example and the build workflow.
       </p>
-      <ol class="manual">
-        <li><a href={NEW_REPO} target="_blank" rel="noopener noreferrer">Create a new repository</a> and set it to <strong>Private</strong>.</li>
-        <li>Copy the files in resumake's <a href={TEMPLATE_DIR} target="_blank" rel="noopener noreferrer"><code>template/</code> folder</a> into it, including <code>.github/</code>.</li>
-        <li>Use <strong>Download YAML</strong> above and commit the file as <code>resumes/default.yml</code>.</li>
-      </ol>
-      <button type="button" disabled title="Coming soon: needs the resumes-template repo">
-        Create from template
-      </button>
+      <a class="button-link" href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer">
+        Create my resumes repo <span aria-hidden="true">↗</span>
+      </a>
+      <p class="fine">
+        On GitHub's page, name it (for example <code>resumes</code>) and choose <strong>Private</strong>: new repos
+        are public by default.
+      </p>
     </li>
     <li>
-      <h3>Connect GitHub</h3>
+      <h3>Put your resumes in it</h3>
       <p>
-        Install the resumake GitHub App on <em>only</em> your resumes repo. It asks for two permissions, contents
-        and pull requests, and can't see your other repos. Then open any file in the repo here, including
-        <code>tailored/</code> variants that use <code>extends:</code>.
+        Use <strong>Download all</strong> above, unzip, and add the files to the repo's <code>resumes/</code> folder
+        (on GitHub: <strong>Add file → Upload files</strong>). To edit them again later, download the repo and use
+        <strong>Open folder</strong> on its <code>resumes/</code> folder.
       </p>
-      <button type="button" disabled title="Coming soon: needs the GitHub App and sign-in Worker">
-        Connect GitHub
-      </button>
     </li>
-    <li>
-      <h3>Save changes</h3>
+    <li class="soon-step">
+      <h3>Connect GitHub <span class="soon">Coming soon</span></h3>
       <p>
-        Commit to a new branch (with a pull request) or straight to <code>main</code>. Your repo's workflow builds
-        the PDF and attaches it to the run; merges to <code>main</code> publish a release.
+        Sign in to open and save the repo's files straight from here, with no downloading: each save goes to a branch
+        or pull request, and the repo's workflow builds the PDF. The resumake GitHub App will ask for access to that
+        one repo only.
       </p>
-      <button type="button" disabled title="Coming soon: available after you connect GitHub">Save to GitHub</button>
     </li>
   </ol>
 </section>

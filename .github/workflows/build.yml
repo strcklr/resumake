@@ -1,5 +1,5 @@
 # CI for resumake itself: run the tests and build the sample resumes.
-# Releases are published from the repos that hold real resumes (see template/).
+# Releases are published from the repos that hold real resumes (see strcklr/resumes-template).
 name: CI
 
 on:
@@ -20,3 +20,25 @@ jobs:
     with:
       install: "."
       run-tests: true
+
+  # New users start from strcklr/resumes-template, whose workflow runs resumake from main. Check its
+  # sample resumes against this change, so a schema change can't break their repos unnoticed.
+  template:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: strcklr/resumes-template
+          path: resumes-template
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - run: resumake validate resumes-template/resumes
+      # Partials (names starting with _) are skipped above; the copy-me example has to work too.
+      - run: resumake validate resumes-template/resumes/tailored/_example.yml
+      # PDF needs Pango, which the reusable workflow covers; the other formats check the templates render.
+      - run: resumake build resumes-template/resumes -f html,md,docx -o dist-template

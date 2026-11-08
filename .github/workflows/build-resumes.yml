@@ -11,7 +11,7 @@
 #       with:
 #         publish-release: ${{ github.event_name != 'pull_request' }}
 #
-# See template/ for a complete caller repository.
+# See https://github.com/strcklr/resumes-template for a complete caller repository.
 name: Build resumes (reusable)
 
 on:

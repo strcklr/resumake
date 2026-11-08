@@ -34,8 +34,8 @@
 
   type Tab = 'preview' | 'problems' | 'inherited' | 'graph' | 'github';
 
-  // The Save to GitHub tab stays hidden until GitHub sign-in and saving are hooked up.
-  const GITHUB_ENABLED = false;
+  // The GitHub tab: creating a repo from the template works; sign-in and saving arrive with #5.
+  const GITHUB_ENABLED = true;
 
   const saved = loadWorkspace();
   let files: Record<string, string> = $state(saved.files);
@@ -393,7 +393,7 @@
         </button>
       {/if}
       {#if GITHUB_ENABLED}
-        <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>Save to GitHub</button>
+        <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>GitHub</button>
       {/if}
     </div>
 

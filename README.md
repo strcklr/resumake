@@ -96,10 +96,14 @@ This repo holds the tool and fictional sample resumes. Keep your own resumes in 
 **private** repository that uses resumake's reusable workflow. Tool improvements reach it
 automatically, and nothing personal ever lands here.
 
-1. Create an empty private repo (e.g. `you/resumes`).
-2. Copy the contents of [`template/`](template/) into it, including `template/.github/`.
-3. Add `resumes/default.yml` (start from this repo's sample) and one file per application in
-   `resumes/tailored/`.
+1. Open [strcklr/resumes-template](https://github.com/strcklr/resumes-template), choose
+   **Use this template → Create a new repository**, and set it to **Private**. The editor's GitHub tab
+   has a button for this.
+2. Replace the sample in `resumes/default.yml` with your resume, and add one file per application in
+   `resumes/tailored/` (copy `_example.yml`).
+
+resumake's CI checks that the template repo's sample resumes still validate and build with every
+change here, so a schema change can't break new users' repos unnoticed.
 
 The template's workflow is just:
 
