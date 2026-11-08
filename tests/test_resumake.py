@@ -210,3 +210,14 @@ def test_shared_extends_cases(case):
             load_resume(entry, validate=False)
     else:
         assert load_resume(entry, validate=False) == expected["data"]
+
+
+# --- the resumes-template repo ------------------------------------------------
+
+def test_template_resumes_are_valid():
+    """template/ is the content of strcklr/resumes-template; its sample resumes must build."""
+    template = ROOT / "template" / "resumes"
+    variants = discover([template])
+    assert [v.name for v in variants] == ["default"]  # tailored/_example.yml is a partial
+    for path in [template / "default.yml", template / "tailored" / "_example.yml"]:
+        load_resume(path)

@@ -1,0 +1,20 @@
+# Copy this file to resumes/tailored/<company-role>.yml for each application.
+# Files whose names start with _ aren't built, so this one is only a starting point.
+extends: ../default.yml
+
+# The job this version targets. Checked, but never shown in any output.
+job:
+  title: Senior Software Engineer
+  company: Example Co
+  url: https://example.com/careers/12345
+  applied: 2026-11-01
+  status: applied
+  description: |
+    Paste the posting here: links stop working once a role is filled.
+
+# Override only what should differ from default.yml:
+#   - mappings merge key by key (this changes just the headline)
+#   - lists replace the parent's list entirely (skills, work, ...)
+#   - `key: null` removes a key, e.g. `projects: null`
+basics:
+  label: Backend Engineer

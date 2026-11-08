@@ -1,0 +1,71 @@
+# Your base resume. Replace this fictional sample with your own. Tailored variants in
+# resumes/tailored/ `extends:` this file and override only what they need.
+basics:
+  name: Jordan Example
+  label: Senior Software Engineer
+  email: jordan@example.com
+  location: Columbus, OH
+  website: https://jordan.example.com
+  profiles:
+    - network: GitHub
+      url: https://github.com/jordan-example
+    - network: LinkedIn
+      url: https://www.linkedin.com/in/jordan-example
+  summary: >
+    Software engineer with 8 years of experience building reliable backend
+    services and developer tooling. Comfortable owning systems end to end,
+    from design docs to on-call.
+
+skills:
+  - name: Languages
+    # Groups render as "Python, Go (proficient) | TypeScript, Rust (familiar)".
+    keywords:
+      - [Python, Go (proficient)]
+      - [TypeScript, Rust (familiar)]
+  - name: Infrastructure
+    keywords: [AWS, Kubernetes, Terraform, Kafka, PostgreSQL]
+  - name: AI Tools
+    keywords: [Claude, GitHub Copilot]
+    note: daily use for code review and debugging
+
+work:
+  # Several roles at one company: the company is the heading, roles beneath it.
+  - company: Acme Analytics
+    location: Remote
+    roles:
+      - position: Senior Software Engineer
+        start: 2023-02
+        highlights:
+          - Led the migration of the event ingestion pipeline to Kafka, cutting p99 latency by 60%.
+          - Mentored four engineers and ran the backend interview loop.
+      - position: Software Engineer
+        start: 2021-06
+        end: 2023-02
+        highlights:
+          - Designed a multi-tenant query service handling 40k requests per second.
+  # A single role can also be written flat.
+  - company: Brightside Health
+    position: Software Engineer
+    location: Columbus, OH
+    start: 2018-01
+    end: 2021-05
+    highlights:
+      - Built HIPAA-compliant patient messaging used by 300+ clinics.
+      - Introduced contract testing between 12 services, halving integration incidents.
+
+projects:
+  - name: resumake
+    url: https://github.com/strcklr/resumake
+    summary: Builds this resume from YAML into PDF, Word, HTML and Markdown.
+    keywords: [Python, GitHub Actions]
+
+education:
+  - institution: The Ohio State University
+    degree: B.S. in Computer Science and Engineering
+    location: Columbus, OH
+    end: 2016
+
+certifications:
+  - name: AWS Certified Solutions Architect – Associate
+    issuer: Amazon Web Services
+    date: 2022-09
