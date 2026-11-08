@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import sample from '../../resumes/default.yml?raw';
   import GitHubSteps from './GitHubSteps.svelte';
+  import Footer from './Footer.svelte';
   import Preview from './Preview.svelte';
   import Splash from './Splash.svelte';
   import { download, loadDraft, saveDraft } from './lib/draft';
@@ -185,3 +186,5 @@
   </section>
 </main>
 </section>
+
+<Footer />

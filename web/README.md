@@ -1,4 +1,4 @@
-# resumake web editor (proof of concept)
+# resumake web editor
 
 A browser editor for resumake YAML: syntax highlighting, field autocomplete, validation against
 resumake's own schema with errors underlined on the exact line, and a live preview rendered by
