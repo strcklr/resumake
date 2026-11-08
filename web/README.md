@@ -112,6 +112,9 @@ together, as they do with the CLI:
   starting with `_`) aren't built on their own, so they have no preview.
 - **Inherited:** for a file that extends others, this tab lists the fields that come from them; click
   one to jump to where it's written.
+- **Extended by:** for a file that others extend (e.g. `default.yml`), this tab draws the tree of files
+  that inherit from it, directly or through another file. Click one to open it. It counts every file
+  in the workspace, including ones whose tabs are closed.
 
 The engine is `src/lib/workspace.ts`. Its merge is a port of `deep_merge` in
 `src/resumake/loader.py`, and both are tested against the shared cases in `tests/fixtures/extends/`,

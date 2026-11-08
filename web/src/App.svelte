@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { EditorState } from '@codemirror/state';
   import { onMount } from 'svelte';
+  import FamilyGraph from './FamilyGraph.svelte';
   import Footer from './Footer.svelte';
   import GitHubSteps from './GitHubSteps.svelte';
   import Preview from './Preview.svelte';
@@ -31,7 +32,7 @@
     type Resolved,
   } from './lib/workspace';
 
-  type Tab = 'preview' | 'problems' | 'inherited' | 'github';
+  type Tab = 'preview' | 'problems' | 'inherited' | 'graph' | 'github';
 
   // The Save to GitHub tab stays hidden until GitHub sign-in and saving are hooked up.
   const GITHUB_ENABLED = false;
@@ -68,6 +69,14 @@
   const filesWithErrors = $derived(new Set(problems.filter((p) => p.severity === 'error').map((p) => p.file)));
   const inherited: Inherited[] = $derived(resolved?.origin ? inheritedFields(resolved.origin, active) : []);
   const partial = $derived(isPartial(active));
+  // The extends: links between files, from every file in the workspace (open in a tab or not).
+  const graph = $derived(new Workspace($state.snapshot(files)));
+  const children = $derived(graph.childrenMap());
+  const extendedBy = $derived(children.get(active) ?? []);
+  // Fall back to the preview when switching to a file that doesn't have the open tab.
+  $effect(() => {
+    if ((tab === 'inherited' && !inherited.length) || (tab === 'graph' && !extendedBy.length)) tab = 'preview';
+  });
   const notice = $derived(
     partial ? "This is a shared fragment: other files can extend it, but it isn't built on its own." : null,
   );
@@ -378,6 +387,11 @@
           Inherited <span class="count">{inherited.length}</span>
         </button>
       {/if}
+      {#if extendedBy.length}
+        <button role="tab" type="button" aria-selected={tab === 'graph'} onclick={() => (tab = 'graph')}>
+          Extended by <span class="count">{extendedBy.length}</span>
+        </button>
+      {/if}
       {#if GITHUB_ENABLED}
         <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>Save to GitHub</button>
       {/if}
@@ -434,6 +448,12 @@
             </li>
           {/each}
         </ul>
+      </div>
+    {/if}
+
+    {#if extendedBy.length}
+      <div class="tab-body" role="tabpanel" hidden={tab !== 'graph'}>
+        <FamilyGraph root={active} {children} {isPartial} onOpen={(path) => open(path)} />
       </div>
     {/if}
 

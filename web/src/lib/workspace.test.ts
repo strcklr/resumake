@@ -154,6 +154,40 @@ describe('inherited fields', () => {
   });
 });
 
+describe('the extends graph', () => {
+  const files = {
+    'default.yml': BASE,
+    '_shared/contact.yml': 'basics:\n  website: https://example.com\n',
+    'tailored/acme.yml': 'extends: [../default.yml, ../_shared/contact.yml]\n',
+    'tailored/acme-senior.yml': 'extends: acme.yml\n',
+    'tailored/globex.yml': 'extends: ../default.yml\n',
+    'tailored/broken.yml': 'extends: ../gone.yml\n',
+  };
+  const ws = new Workspace(files);
+
+  it('lists a file’s parents, marking ones that are missing', () => {
+    expect(ws.parentsOf('tailored/acme.yml')).toEqual([
+      { ref: '../default.yml', path: 'default.yml' },
+      { ref: '../_shared/contact.yml', path: '_shared/contact.yml' },
+    ]);
+    expect(ws.parentsOf('tailored/broken.yml')).toEqual([{ ref: '../gone.yml', path: undefined }]);
+    expect(ws.parentsOf('default.yml')).toEqual([]);
+  });
+
+  it('maps each file to the files that extend it', () => {
+    const children = ws.childrenMap();
+    expect(children.get('default.yml')).toEqual(['tailored/acme.yml', 'tailored/globex.yml']);
+    expect(children.get('tailored/acme.yml')).toEqual(['tailored/acme-senior.yml']);
+    expect(children.get('_shared/contact.yml')).toEqual(['tailored/acme.yml']);
+    expect(children.has('tailored/globex.yml')).toBe(false);
+  });
+
+  it('survives cycles', () => {
+    const cyclic = new Workspace({ 'a.yml': 'extends: b.yml\n', 'b.yml': 'extends: a.yml\n' });
+    expect(cyclic.childrenMap().get('a.yml')).toEqual(['b.yml']);
+  });
+});
+
 describe('paths', () => {
   it('resolves relative to the file’s folder', () => {
     expect(resolvePath('resumes/tailored/acme.yml', '../default.yml')).toBe('resumes/default.yml');

@@ -81,6 +81,31 @@ export class Workspace {
     return finish(result);
   }
 
+  /** What `path` extends, in order: each `extends:` value and the file it points to (undefined if missing). */
+  parentsOf(path: string): { ref: string; path?: string }[] {
+    const data = this.parse(path)?.data;
+    if (!isPlainObject(data) || !data.extends) return [];
+    const refs = typeof data.extends === 'string' ? [data.extends] : data.extends;
+    if (!Array.isArray(refs)) return [];
+    return refs
+      .filter((r): r is string => typeof r === 'string')
+      .map((ref) => {
+        const target = resolvePath(path, ref);
+        return { ref, path: target !== undefined && target in this.files ? target : undefined };
+      });
+  }
+
+  /** For every file, the files that extend it directly. */
+  childrenMap(): Map<string, string[]> {
+    const children = new Map<string, string[]>();
+    for (const path of Object.keys(this.files).sort()) {
+      for (const parent of this.parentsOf(path)) {
+        if (parent.path && parent.path !== path) children.set(parent.path, [...(children.get(parent.path) ?? []), path]);
+      }
+    }
+    return children;
+  }
+
   /** Where `segments` is written in `file` (the key that holds it), to jump there. */
   range(file: string, segments: Segment[]): [number, number] | undefined {
     const parsed = this.parse(file);
