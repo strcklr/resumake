@@ -1,8 +1,7 @@
 # Type-check, test and build the web editor in web/. On main, also deploy it to GitHub Pages.
 #
-# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
-# If chasestrickler.com is the custom domain of the strcklr.github.io site, this project is then
-# served at https://chasestrickler.com/resumake/ with no DNS changes.
+# Served at https://resumake.chasestrickler.com. One-time setup (see web/README.md): Pages Source set
+# to "GitHub Actions", the custom domain set in Settings → Pages, and a CNAME record at the DNS host.
 name: Web editor
 
 on:

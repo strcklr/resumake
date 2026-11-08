@@ -1,5 +1,7 @@
 # resumake web editor
 
+**Live at https://resumake.chasestrickler.com**
+
 A browser editor for resumake YAML: syntax highlighting, field autocomplete, validation against
 resumake's own schema with errors underlined on the exact line, and a live preview rendered by
 resumake's own Python and HTML template. Drafts stay in your browser.
@@ -25,10 +27,17 @@ npm run build      # static site in web/dist/
 the site, after the type-check, tests and build pass. To redeploy by hand, run the workflow from the
 Actions tab on `main`.
 
-One-time setup: in the repo's **Settings → Pages**, set **Source** to **GitHub Actions**. If
-chasestrickler.com is the custom domain of the `strcklr.github.io` site, GitHub serves this project
-at `https://chasestrickler.com/resumake/` with no DNS changes. The build uses relative paths
-(`base: './'`), so it works from that subfolder or any other.
+The site is live at **https://resumake.chasestrickler.com**. `strcklr.github.io/resumake` redirects there.
+
+How it's set up (one time):
+
+- **Settings → Pages → Source** is **GitHub Actions**.
+- **Settings → Pages → Custom domain** is `resumake.chasestrickler.com`, with **Enforce HTTPS** on. A
+  deploy from Actions has no `CNAME` file, so the domain lives only in this setting.
+- **DNS (GoDaddy):** a `CNAME` record from `resumake` to `strcklr.github.io`.
+
+Removing either the DNS record or the Pages setting takes the subdomain offline. The build uses
+relative paths (`base: './'`), so it works at a domain's root or in a subfolder.
 
 ## How validation stays in step with the CLI
 
