@@ -19,6 +19,17 @@ npm run check      # type-check
 npm run build      # static site in web/dist/
 ```
 
+## Deploying
+
+`.github/workflows/web.yml` deploys `web/dist/` to GitHub Pages on every push to `main` that touches
+the site, after the type-check, tests and build pass. To redeploy by hand, run the workflow from the
+Actions tab on `main`.
+
+One-time setup: in the repo's **Settings → Pages**, set **Source** to **GitHub Actions**. If
+chasestrickler.com is the custom domain of the `strcklr.github.io` site, GitHub serves this project
+at `https://chasestrickler.com/resumake/` with no DNS changes. The build uses relative paths
+(`base: './'`), so it works from that subfolder or any other.
+
 ## How validation stays in step with the CLI
 
 `src/lib/schema.json` is generated from `src/resumake/schema.py`. After changing the schema, run:
