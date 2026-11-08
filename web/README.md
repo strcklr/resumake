@@ -22,6 +22,28 @@ npm run check      # type-check
 npm run build      # static site in web/dist/
 ```
 
+## GitHub sign-in
+
+The **GitHub** tab signs in with the resumake GitHub App and opens a repo's `resumes/` folder in the
+editor (saving back is the next step of #5). It needs three build settings, which CI takes from the
+repo's Actions variables; without them the tab says sign-in isn't set up:
+
+| Build variable | Actions variable | |
+|---|---|---|
+| `VITE_GH_CLIENT_ID` | `RESUMAKE_GH_CLIENT_ID` | The app's client ID |
+| `VITE_GH_APP_SLUG` | `RESUMAKE_GH_APP_SLUG` | The app's URL slug |
+| `VITE_AUTH_URL` | `RESUMAKE_AUTH_URL` | The sign-in Worker's URL |
+
+Signing in goes to GitHub and back with a one-time code, which the sign-in Worker (`worker/`) swaps
+for a token. The token stays in this tab's `sessionStorage` (never `localStorage`), expires after 8
+hours, and is revoked on sign-out. The app sees only the repos it's installed on. Setup steps and
+security notes are in [`worker/README.md`](../worker/README.md); the client lives in
+`src/lib/github.ts`.
+
+**Content Security Policy.** The built page carries a strict CSP (added in `vite.config.ts`): it
+runs only its own scripts, and connects only to itself, `api.github.com` and the Worker. For that,
+the schema validator is compiled at build time instead of with `new Function` in the browser.
+
 ## Deploying
 
 `.github/workflows/web.yml` deploys `web/dist/` to GitHub Pages on every push to `main` that touches

@@ -164,8 +164,8 @@ To add a format, write a `render(ctx, out_path)` function and register it in
 **https://resumake.chasestrickler.com**: highlighting, field autocomplete, validation
 against the same schema as `resumake validate` with errors on the exact line, and a live preview
 rendered by resumake's own Python and template running in the browser (Pyodide). It handles tailored
-variants too: open a `resumes/` folder and `extends:` is resolved across files. GitHub sign-in and
-saving aren't built yet. See [`web/README.md`](web/README.md).
+variants too: open a `resumes/` folder and `extends:` is resolved across files. With GitHub sign-in
+it opens your resumes repo directly; saving back is next. See [`web/README.md`](web/README.md).
 
 ```bash
 cd web && npm install && npm run dev

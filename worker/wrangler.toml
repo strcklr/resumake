@@ -1,0 +1,14 @@
+# Deployed by .github/workflows/worker.yml. GH_CLIENT_ID and the GH_CLIENT_SECRET secret are set by
+# that workflow from the repo's Actions variables and secrets (see worker/README.md).
+name = "resumake-auth"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+# Pages allowed to call this Worker. For `wrangler dev`, override in .dev.vars.
+ALLOWED_ORIGINS = "https://resumake.chasestrickler.com"
+
+# No request logs: tokens pass through this Worker, and nothing about them should be recorded.
+[observability]
+enabled = false

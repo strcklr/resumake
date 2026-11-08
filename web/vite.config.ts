@@ -1,4 +1,6 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import Ajv2020 from 'ajv/dist/2020.js';
+import standaloneCode from 'ajv/dist/standalone/index.js';
 import { createReadStream, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -36,8 +38,61 @@ function selfHostPyodide(): Plugin {
   };
 }
 
+/**
+ * The resume validator, compiled from src/lib/schema.json at build time (Ajv's standalone mode).
+ * Ajv normally builds its validator with `new Function` in the browser, which the Content Security
+ * Policy below forbids; precompiling also keeps Ajv's compiler out of the bundle.
+ */
+function precompiledValidator(): Plugin {
+  const id = 'virtual:resume-validator';
+  const schemaPath = new URL('./src/lib/schema.json', import.meta.url);
+  return {
+    name: 'precompiled-validator',
+    resolveId: (source) => (source === id ? `\0${id}` : undefined),
+    load(source) {
+      if (source !== `\0${id}`) return;
+      this.addWatchFile(schemaPath.pathname);
+      const ajv = new Ajv2020({ allErrors: true, strict: false, verbose: true, code: { source: true, esm: true } });
+      return standaloneCode(ajv, ajv.compile(JSON.parse(readFileSync(schemaPath, 'utf8'))));
+    },
+  };
+}
+
+/**
+ * A strict Content Security Policy for the built site (the dev server needs inline scripts, so it's
+ * build-only). The page can run only its own scripts, compile WebAssembly (Pyodide), and connect only
+ * to itself, GitHub's API and the sign-in Worker. That limits what an injected script could do with a
+ * GitHub token. Inline styles are allowed: CodeMirror, Svelte and the resume's own template use them.
+ */
+function contentSecurityPolicy(): Plugin {
+  let connect = "'self' https://api.github.com";
+  return {
+    name: 'content-security-policy',
+    apply: 'build',
+    configResolved(cfg) {
+      const auth = cfg.env.VITE_AUTH_URL as string | undefined;
+      if (auth) connect += ` ${new URL(auth).origin}`;
+    },
+    transformIndexHtml(html) {
+      const policy = [
+        "default-src 'self'",
+        "script-src 'self' 'wasm-unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data:",
+        "font-src 'self' data:",
+        `connect-src ${connect}`,
+        "worker-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'none'",
+      ].join('; ');
+      return html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [svelte(), selfHostPyodide()],
+  plugins: [svelte(), precompiledValidator(), selfHostPyodide(), contentSecurityPolicy()],
   // Relative asset paths, so the build works from any URL path (GitHub Pages, a subfolder, a file server).
   base: './',
   worker: { format: 'es' },

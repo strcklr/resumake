@@ -1,0 +1,54 @@
+# Test the sign-in Worker in worker/, and deploy it to Cloudflare from main.
+#
+# Deploying needs (see worker/README.md):
+#   Actions secrets:   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, GH_APP_CLIENT_SECRET
+#   Actions variables: RESUMAKE_GH_CLIENT_ID
+# Until RESUMAKE_GH_CLIENT_ID is set, the deploy job is skipped.
+name: Sign-in Worker
+
+on:
+  pull_request:
+    paths: ["worker/**", ".github/workflows/worker.yml"]
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/worker.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.RESUMAKE_GH_CLIENT_ID != ''
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: worker-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: worker
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          secrets: |
+            GH_CLIENT_SECRET
+          vars: |
+            GH_CLIENT_ID
+        env:
+          GH_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
+          GH_CLIENT_ID: ${{ vars.RESUMAKE_GH_CLIENT_ID }}

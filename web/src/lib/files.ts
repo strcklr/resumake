@@ -16,6 +16,17 @@ export interface Saved {
   active: string;
   /** Files open as tabs, in tab order. Closing a tab keeps the file. */
   tabs: string[];
+  /** The GitHub repo the files were opened from, if any. */
+  source?: Source | null;
+}
+
+export interface Source {
+  repo: string;
+  branch: string;
+  /** The commit the files were read from. */
+  commit: string;
+  /** The repo folder the workspace's paths are relative to. */
+  folder: string;
 }
 
 const KEY = 'resumake:workspace';
@@ -38,7 +49,7 @@ export function loadWorkspace(): Saved {
         const paths = sortPaths(Object.keys(saved.files));
         const active = saved.active && saved.active in saved.files ? saved.active : paths[0];
         const tabs = (saved.tabs ?? paths).filter((t) => t in saved.files!);
-        return { files: saved.files, active, tabs: tabs.includes(active) ? tabs : [...tabs, active] };
+        return { files: saved.files, active, tabs: tabs.includes(active) ? tabs : [...tabs, active], source: saved.source ?? null };
       }
     }
     const draft = localStorage.getItem(OLD_DRAFT_KEY);
