@@ -20,7 +20,9 @@
     saveWorkspace,
     sortPaths,
     zipFiles,
+    type Source,
   } from './lib/files';
+  import type { LoadedRepo } from './lib/github';
   import { PreviewClient } from './lib/preview';
   import { formatPath } from './lib/validate';
   import {
@@ -42,6 +44,10 @@
   let active = $state(saved.active);
   /** Files open as tabs. Closing a tab keeps the file, so variants that extend it still resolve. */
   let tabs = $state(saved.tabs);
+  /** The GitHub repo the files came from; cleared when they're replaced from elsewhere. */
+  let source = $state<Source | null>(saved.source ?? null);
+  // Coming back from GitHub sign-in lands on the GitHub tab.
+  const returningFromGitHub = new URLSearchParams(window.location.search).has('code');
   let filesMenuOpen = $state(false);
   // Each file keeps its own editor state (undo history, selection) while you switch between them.
   const states = new Map<string, EditorState>();
@@ -53,7 +59,7 @@
   let preview: PreviewClient | undefined;
 
   let resolved = $state<Resolved | null>(null);
-  let tab: Tab = $state('preview');
+  let tab: Tab = $state(returningFromGitHub ? 'github' : 'preview');
 
   let html: string | null = $state(null);
   let loading: string | null = $state('Starting…');
@@ -94,7 +100,7 @@
   }
 
   function persist(snapshot = $state.snapshot(files)) {
-    saveWorkspace({ files: snapshot, active, tabs: $state.snapshot(tabs) });
+    saveWorkspace({ files: snapshot, active, tabs: $state.snapshot(tabs), source: $state.snapshot(source) });
   }
 
   /** Show a file in the editor (opening its tab if it's closed), optionally selecting a range in it. */
@@ -122,8 +128,9 @@
   }
 
   /** Replace every file (sample, opened folder) and show `first`. */
-  function replaceAll(next: Record<string, string>, first: string, openTabs: string[]) {
+  function replaceAll(next: Record<string, string>, first: string, openTabs: string[], from: Source | null = null) {
     states.clear();
+    source = from;
     files = next;
     active = first;
     tabs = openTabs;
@@ -148,6 +155,7 @@
     });
     editor = createEditor({ parent: host, dark: matchMedia('(prefers-color-scheme: dark)').matches, check });
     editor.view.setState(editor.stateFor(files[active]));
+    if (returningFromGitHub) document.getElementById('editor')?.scrollIntoView();
     return () => {
       editor?.view.destroy();
       preview?.destroy();
@@ -247,6 +255,20 @@
     // Open just the base file; the rest are a click away in the Files list.
     const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
     replaceAll(picked, first, [first]);
+  }
+
+  /** Put a GitHub repo's resumes in the editor, replacing what's here (after asking). */
+  function openFromGitHub(loaded: LoadedRepo): boolean {
+    const names = sortPaths(Object.keys(loaded.files));
+    const ok = confirm(
+      `Replace the files in this browser with the ${names.length} file${names.length === 1 ? '' : 's'} from ${loaded.repo}?` +
+        '\n\nDownload all first if you want to keep what is here.',
+    );
+    if (!ok) return false;
+    const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
+    replaceAll(loaded.files, first, [first], { repo: loaded.repo, branch: loaded.branch, commit: loaded.commit, folder: loaded.folder });
+    tab = 'preview';
+    return true;
   }
 
   function downloadFile() {
@@ -371,7 +393,10 @@
         <button type="button" class="link" onclick={deleteFile}>Delete</button>
         <button type="button" class="link" onclick={downloadFile}>Download this file</button>
       </div>
-      <span>Ctrl+Space suggests fields · saved in this browser</span>
+      <span>
+        Ctrl+Space suggests fields ·
+        {#if source}from <strong>{source.repo}</strong> ({source.branch}), saved in this browser{:else}saved in this browser{/if}
+      </span>
     </div>
   </section>
 
@@ -459,7 +484,7 @@
 
     {#if GITHUB_ENABLED}
       <div class="tab-body" role="tabpanel" hidden={tab !== 'github'}>
-        <GitHubSteps />
+        <GitHubSteps onOpen={openFromGitHub} {source} />
       </div>
     {/if}
   </section>

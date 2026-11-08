@@ -1,0 +1,18 @@
+{
+  "name": "resumake-auth",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Finishes GitHub sign-in for the resumake web editor: swaps the sign-in code for a token, and revokes it on sign-out.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.150.0"
+  }
+}

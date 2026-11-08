@@ -1,13 +1,14 @@
 /**
  * Validate resume YAML in the browser against resumake's own schema.
  *
- * `schema.json` is generated from `src/resumake/schema.py` (`resumake schema -o ...`) and a
- * Python test fails if the two drift apart, so the editor and the CLI accept the same files.
+ * `schema.json` is generated from `src/resumake/schema.py` (`resumake schema -o ...`) and compiled
+ * into a validator at build time (see vite.config.ts). A Python test fails if the two drift apart,
+ * so the editor and the CLI accept the same files.
  * Errors are mapped back to the exact source range using the `yaml` package's node positions.
  */
-import Ajv2020, { type ErrorObject } from 'ajv/dist/2020';
+import type { ErrorObject } from 'ajv';
+import check from 'virtual:resume-validator';
 import { isMap, isScalar, isSeq, LineCounter, parseDocument, type Document, type Node } from 'yaml';
-import schema from './schema.json';
 
 export type Severity = 'error' | 'warning';
 
@@ -30,8 +31,6 @@ export interface Result {
   data?: unknown;
 }
 
-const ajv = new Ajv2020({ allErrors: true, strict: false, verbose: true });
-const check = ajv.compile(schema);
 
 /** A YAML file parsed with source positions, plus its syntax problems. */
 export interface ParsedFile {
