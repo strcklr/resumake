@@ -22,8 +22,8 @@
       <p class="eyebrow">Open source · runs entirely in your browser</p>
       <h1>Your resume, written once.</h1>
       <p class="lede">
-        Write it in YAML. resumake checks it as you type, previews it with the same template that
-        makes the PDF, and builds PDF, Word, HTML and Markdown from one file.
+        Write your resume once in YAML and export it to PDF, HTML, Word, and Markdown. The editor
+        renders a live preview that you can export, all in your browser.
       </p>
       <div class="cta">
         <a class="button primary" href="#editor">
@@ -34,7 +34,7 @@
       </div>
       <ul class="points">
         <li><strong>Checks as you type.</strong> Errors are underlined on the exact line.</li>
-        <li><strong>Live preview.</strong> resumake's own Python renders it, right in the page.</li>
+        <li><strong>Live preview.</strong> The YAML is rendered right in the page.</li>
         <li><strong>Stays on your machine.</strong> Nothing you type is sent anywhere.</li>
       </ul>
     </div>
