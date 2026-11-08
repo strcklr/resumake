@@ -97,7 +97,7 @@
     <span class="logo" aria-hidden="true">r</span>
     <div>
       <h1>resumake editor</h1>
-      <p class="tag">Proof of concept · edit, check and preview one resume file in your browser</p>
+      <p class="tag">Edit, check and preview one resume file in your browser</p>
     </div>
   </a>
   <div class="actions">
