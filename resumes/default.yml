@@ -2,7 +2,7 @@
 # `extends:` this file and override only what they need.
 #
 # To keep your real resumes private, put them in your own private repo instead
-# of editing this one. See template/README.md.
+# of editing this one. Start from https://github.com/strcklr/resumes-template.
 basics:
   name: Jordan Example
   label: Senior Software Engineer

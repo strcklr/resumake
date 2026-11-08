@@ -1,6 +1,6 @@
 <script lang="ts">
   // Keeping your resumes in your own private GitHub repo. Step 1 works today: it opens GitHub's
-  // "use this template" page for strcklr/resumes-template (made from template/ in this repo).
+  // "use this template" page for strcklr/resumes-template.
   // Steps 2 and 3 arrive with GitHub sign-in (issue #5).
   const TEMPLATE_REPO = 'https://github.com/strcklr/resumes-template';
   const USE_TEMPLATE = 'https://github.com/new?template_name=resumes-template&template_owner=strcklr';
