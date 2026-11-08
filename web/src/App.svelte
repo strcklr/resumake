@@ -4,12 +4,16 @@
   import sample from '../../resumes/default.yml?raw';
   import GitHubSteps from './GitHubSteps.svelte';
   import Preview from './Preview.svelte';
+  import Splash from './Splash.svelte';
   import { download, loadDraft, saveDraft } from './lib/draft';
   import { createEditor, jumpTo, replaceDoc } from './lib/editor';
   import { PreviewClient } from './lib/preview';
   import type { Problem } from './lib/validate';
 
   type Tab = 'preview' | 'problems' | 'github';
+
+  // The Save to GitHub tab stays hidden until GitHub sign-in and saving are hooked up.
+  const GITHUB_ENABLED = false;
 
   let host: HTMLDivElement;
   let fileInput: HTMLInputElement;
@@ -85,14 +89,17 @@
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 </script>
 
+<Splash />
+
+<section id="editor" class="workspace" aria-label="Editor">
 <header class="top">
-  <div class="brand">
+  <a class="brand" href="#top" aria-label="resumake: back to the top">
     <span class="logo" aria-hidden="true">r</span>
     <div>
       <h1>resumake editor</h1>
       <p class="tag">Proof of concept · edit, check and preview one resume file in your browser</p>
     </div>
-  </div>
+  </a>
   <div class="actions">
     <button type="button" onclick={loadSample}>Load sample</button>
     <button type="button" onclick={() => fileInput.click()}>Open .yml</button>
@@ -136,7 +143,9 @@
         Problems
         {#if problems.length}<span class="count" class:has-errors={errors > 0}>{problems.length}</span>{/if}
       </button>
-      <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>Save to GitHub</button>
+      {#if GITHUB_ENABLED}
+        <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>Save to GitHub</button>
+      {/if}
     </div>
 
     <!-- Kept mounted while hidden, so the preview stays rendered and its scroll position survives. -->
@@ -168,8 +177,11 @@
       <p class="note">Checked against the same schema as <code>resumake validate</code>.</p>
     </div>
 
-    <div class="tab-body" role="tabpanel" hidden={tab !== 'github'}>
-      <GitHubSteps />
-    </div>
+    {#if GITHUB_ENABLED}
+      <div class="tab-body" role="tabpanel" hidden={tab !== 'github'}>
+        <GitHubSteps />
+      </div>
+    {/if}
   </section>
 </main>
+</section>

@@ -4,8 +4,11 @@ A browser editor for resumake YAML: syntax highlighting, field autocomplete, val
 resumake's own schema with errors underlined on the exact line, and a live preview rendered by
 resumake's own Python and HTML template. Drafts stay in your browser.
 
+The page opens on a splash screen (`src/Splash.svelte`) whose button scrolls down to the editor.
+
 This is the first iteration of the web editor plan. Not built yet: the template repo button, and
-GitHub sign-in and saving. Their buttons are placeholders that explain what they'll do.
+GitHub sign-in and saving. Their screen (`src/GitHubSteps.svelte`) is written but hidden: set
+`GITHUB_ENABLED` in `src/App.svelte` once saving is hooked up.
 
 ```bash
 cd web
@@ -63,7 +66,8 @@ has errors, the last valid version stays on screen, dimmed.
 | `src/lib/preview.worker.ts`, `preview.ts` | The preview worker and the page's handle on it |
 | `src/App.svelte` | The page |
 | `src/Preview.svelte` | The scaled, paged preview |
-| `src/GitHubSteps.svelte` | Placeholder steps for the private-repo workflow |
+| `src/Splash.svelte` | The landing screen above the editor |
+| `src/GitHubSteps.svelte` | Steps for the private-repo workflow (hidden for now) |
 
 `extends:` isn't resolved in the browser: a file that uses it is checked on its own, with a warning.
 Resolving it across files arrives with GitHub sign-in.

@@ -10,6 +10,7 @@
   --bad: #b3261e;
   --warn: #8a5a00;
   --code-bg: #eef1f5;
+  --splash-glow: rgb(35 90 140 / 0.12);
   color-scheme: light;
 }
 
@@ -26,6 +27,7 @@
     --bad: #ff8a80;
     --warn: #f0c060;
     --code-bg: #2a3038;
+    --splash-glow: rgb(110 168 220 / 0.14);
     color-scheme: dark;
   }
 }
@@ -40,7 +42,11 @@ body {
   font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* The editor fills one screen below the splash. */
+.workspace { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
 code {
   font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -83,7 +89,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; align-items: center; gap: 0.6rem; }
+.brand { display: flex; align-items: center; gap: 0.6rem; color: inherit; text-decoration: none; }
 .logo {
   display: grid; place-items: center;
   width: 2rem; height: 2rem; border-radius: 6px;
@@ -188,7 +194,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* --- small screens --------------------------------------------------------------------- */
 
 @media (max-width: 900px) {
-  #app { height: auto; }
+  .workspace { height: auto; }
   .layout { grid-template-columns: 1fr; padding: 0.75rem 1rem; }
   .editor-pane { height: 60vh; min-height: 360px; }
   .side-pane { height: 85vh; min-height: 480px; }
