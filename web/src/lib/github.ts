@@ -36,16 +36,17 @@ export interface Session {
   expiresAt: number | null;
 }
 
-/** The page's own URL without query or hash: where GitHub sends people back. */
-export function callbackUrl(location: Location = window.location): string {
-  return `${location.origin}${location.pathname}`;
-}
-
-/** Where to send someone to sign in. Remembers a random state to check when they come back. */
-export function signInUrl(cfg: GitHubConfig, redirectUri: string): string {
+/**
+ * Where to send someone to sign in. Remembers a random state to check when they come back.
+ *
+ * No `redirect_uri` is sent: GitHub then returns people to the callback URL registered on the app,
+ * which is always right. (Sending the page's own address broke sign-in from http:// or any address
+ * that differed from the registered one, even slightly.)
+ */
+export function signInUrl(cfg: GitHubConfig): string {
   const state = randomState();
   safe(() => sessionStorage.setItem(STATE_KEY, state));
-  const params = new URLSearchParams({ client_id: cfg.clientId, redirect_uri: redirectUri, state });
+  const params = new URLSearchParams({ client_id: cfg.clientId, state });
   return `https://github.com/login/oauth/authorize?${params}`;
 }
 

@@ -25,9 +25,11 @@ describe('config', () => {
 
 describe('the sign-in round trip', () => {
   it('accepts the code only with the state it sent', () => {
-    const url = new URL(signInUrl(cfg, 'https://resumake.chasestrickler.com/'));
+    const url = new URL(signInUrl(cfg));
     expect(url.origin + url.pathname).toBe('https://github.com/login/oauth/authorize');
     expect(url.searchParams.get('client_id')).toBe('Iv1.abc');
+    // GitHub uses the app's registered callback URL, so the page's own address can't mismatch it.
+    expect(url.searchParams.has('redirect_uri')).toBe(false);
     const state = url.searchParams.get('state')!;
     expect(state).toMatch(/^[0-9a-f]{32}$/);
     expect(readCallback(`?code=abc&state=${state}`)).toBe('abc');
@@ -36,7 +38,7 @@ describe('the sign-in round trip', () => {
   });
 
   it('rejects a forged state', () => {
-    signInUrl(cfg, 'https://x/');
+    signInUrl(cfg);
     expect(() => readCallback('?code=abc&state=forged')).toThrow(/not started from this page/);
   });
 
