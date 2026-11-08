@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPartial, originFile, resolvePath, Workspace, type FileProblem, type Files } from './workspace';
+import { inheritedFields, isPartial, originFile, resolvePath, Workspace, type FileProblem, type Files } from './workspace';
 
 // The cases the CLI is tested against too (tests/test_resumake.py::test_shared_extends_cases).
 const raw = import.meta.glob('../../../tests/fixtures/extends/*/**/*.{yml,json}', {
@@ -132,6 +132,25 @@ describe('origins', () => {
     expect(originFile(origin!, ['basics', 'label'])).toBe('acme.yml');
     expect(originFile(origin!, ['basics', 'name'])).toBe('default.yml');
     expect(originFile(origin!, ['work', 0, 'company'])).toBe('default.yml');
+  });
+});
+
+describe('inherited fields', () => {
+  it('lists what comes from parents, a whole section at a time', () => {
+    const files = { 'default.yml': BASE, 'acme.yml': 'extends: default.yml\nbasics:\n  label: Platform\n' };
+    const ws = new Workspace(files);
+    const { origin } = ws.resolve('acme.yml');
+    expect(inheritedFields(origin!, 'acme.yml')).toEqual([
+      { segments: ['basics', 'name'], file: 'default.yml' },
+      { segments: ['work'], file: 'default.yml' },
+    ]);
+    const range = ws.range('default.yml', ['work'])!;
+    expect(files['default.yml'].slice(...range)).toBe('work');
+  });
+
+  it('lists nothing for a file without extends', () => {
+    const { origin } = new Workspace({ 'default.yml': BASE }).resolve('default.yml');
+    expect(inheritedFields(origin!, 'default.yml')).toEqual([]);
   });
 });
 

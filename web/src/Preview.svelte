@@ -18,9 +18,11 @@
     error: string | null;
     /** The editor has errors, so this is the last valid version. */
     stale: boolean;
+    /** Shown instead of the preview (e.g. a shared fragment, which isn't built on its own). */
+    notice: string | null;
     fileName: string;
   }
-  let { html, loading, failed, error, stale, fileName }: Props = $props();
+  let { html, loading, failed, error, stale, notice, fileName }: Props = $props();
 
   const PX_PER_IN = 96;
   const PAGE_WIDTH = 8.5 * PX_PER_IN;
@@ -97,7 +99,9 @@
 <div class="preview">
   <div class="preview-bar">
     <p class="preview-status" aria-live="polite">
-      {#if failed}
+      {#if notice}
+        <span class="muted">{notice}</span>
+      {:else if failed}
         <span class="bad">Preview unavailable: {failed}</span>
       {:else if loading && !html}
         <span class="spinner" aria-hidden="true"></span>{loading} <span class="muted">First visit downloads about 12 MB; later visits use the cache.</span>
@@ -110,10 +114,10 @@
       {/if}
     </p>
     <div class="preview-actions">
-      <button type="button" onclick={printPdf} disabled={!html} title="Opens the resume in a new tab and the print dialog: choose Save as PDF">
+      <button type="button" onclick={printPdf} disabled={!html || !!notice} title="Opens the resume in a new tab and the print dialog: choose Save as PDF">
         Print / Save PDF
       </button>
-      <button type="button" onclick={downloadHtml} disabled={!html}>Download HTML</button>
+      <button type="button" onclick={downloadHtml} disabled={!html || !!notice}>Download HTML</button>
     </div>
   </div>
 
@@ -123,7 +127,7 @@
       class:dim={stale || !!error}
       style:width="{PAGE_WIDTH * scale}px"
       style:height="{contentHeight * scale}px"
-      hidden={!html}
+      hidden={!html || !!notice}
     >
       <div class="scaled" style:transform="scale({scale})" style:width="{PAGE_WIDTH}px">
         <iframe
@@ -137,7 +141,7 @@
         {/each}
       </div>
     </div>
-    {#if !html && !failed}
+    {#if !html && !failed && !notice}
       <div class="sheet-placeholder" aria-hidden="true"></div>
     {/if}
   </div>

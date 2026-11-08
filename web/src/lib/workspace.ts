@@ -7,7 +7,7 @@
  * both. Alongside the merged data it builds an `Origin` tree recording which file supplied each
  * value, which is how an error in the merged resume finds its way back to a line in one file.
  *
- * Not wired into the page yet: it ships with GitHub sync (issues #9 and #5).
+ * The page keeps its files in the browser for now (`files.ts`); GitHub sync (#5) will supply them instead.
  */
 import {
   dedupe,
@@ -79,6 +79,14 @@ export class Workspace {
       }
     }
     return finish(result);
+  }
+
+  /** Where `segments` is written in `file` (the key that holds it), to jump there. */
+  range(file: string, segments: Segment[]): [number, number] | undefined {
+    const parsed = this.parse(file);
+    if (!parsed) return undefined;
+    const loc = locate(parsed.doc, parsed.text, segments, true);
+    return [loc.from, loc.to];
   }
 
   private parse(path: string): ParsedFile | undefined {
@@ -180,6 +188,30 @@ export function originFile(origin: Origin, segments: Segment[]): string {
     node = next;
   }
   return node.file;
+}
+
+export interface Inherited {
+  segments: Segment[];
+  file: string;
+}
+
+/**
+ * The parts of a resolved resume that come from other files, as compactly as possible: a section
+ * inherited whole is listed once (`work`), not field by field.
+ */
+export function inheritedFields(origin: Origin, entry: string): Inherited[] {
+  const out: Inherited[] = [];
+  const allFrom = (node: Origin, file: string): boolean =>
+    node.file === file && Object.values(node.keys ?? {}).every((child) => allFrom(child, file));
+  const walk = (node: Origin, segments: string[]) => {
+    if (segments.length && node.file !== entry && allFrom(node, node.file)) {
+      out.push({ segments, file: node.file });
+      return;
+    }
+    for (const [key, child] of Object.entries(node.keys ?? {})) walk(child, [...segments, key]);
+  };
+  walk(origin, []);
+  return out;
 }
 
 // --- paths ---------------------------------------------------------------------------------
