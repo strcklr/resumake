@@ -1,0 +1,4 @@
+# Parents merge left to right, then this file on top.
+extends: [a.yml, b.yml]
+basics:
+  email: leaf@example.com

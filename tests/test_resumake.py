@@ -191,3 +191,22 @@ def test_web_schema_is_in_sync():
 
     committed = (ROOT / "web" / "src" / "lib" / "schema.json").read_text(encoding="utf-8")
     assert committed == schema_json()
+
+
+# --- extends cases shared with the web editor --------------------------------
+
+EXTENDS_CASES = sorted(p for p in (ROOT / "tests" / "fixtures" / "extends").iterdir() if p.is_dir())
+
+
+@pytest.mark.parametrize("case", EXTENDS_CASES, ids=lambda p: p.name)
+def test_shared_extends_cases(case):
+    import json
+
+    expected = json.loads((case / "expected.json").read_text(encoding="utf-8"))
+    entry = case / expected["entry"]
+    if "error" in expected:
+        pattern = {"circular": "circular extends", "not found": "file not found"}[expected["error"]]
+        with pytest.raises(ResumeError, match=pattern):
+            load_resume(entry, validate=False)
+    else:
+        assert load_resume(entry, validate=False) == expected["data"]

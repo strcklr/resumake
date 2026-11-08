@@ -1,0 +1,5 @@
+# A parent's top-level nulls are dropped when it is merged in, but nested ones are kept.
+basics:
+  name: A
+  label: null
+projects: null

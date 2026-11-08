@@ -159,7 +159,8 @@ To add a format, write a `render(ctx, out_path)` function and register it in
 [`web/`](web/) is a browser editor for resume YAML, live at
 **https://resumake.chasestrickler.com**: highlighting, field autocomplete, validation
 against the same schema as `resumake validate` with errors on the exact line, and a live preview
-rendered by resumake's own Python and template running in the browser (Pyodide). GitHub sign-in and
+rendered by resumake's own Python and template running in the browser (Pyodide). It handles tailored
+variants too: open a `resumes/` folder and `extends:` is resolved across files. GitHub sign-in and
 saving aren't built yet. See [`web/README.md`](web/README.md).
 
 ```bash

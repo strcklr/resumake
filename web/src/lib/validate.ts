@@ -33,22 +33,77 @@ export interface Result {
 const ajv = new Ajv2020({ allErrors: true, strict: false, verbose: true });
 const check = ajv.compile(schema);
 
-export function validate(text: string): Result {
+/** A YAML file parsed with source positions, plus its syntax problems. */
+export interface ParsedFile {
+  text: string;
+  doc: Document;
+  lineCounter: LineCounter;
+  /** YAML syntax errors and warnings. */
+  problems: Problem[];
+  /** The parsed value (`{}` for an empty file); undefined when the YAML has errors. */
+  data?: unknown;
+}
+
+export function parseFile(text: string): ParsedFile {
   const lineCounter = new LineCounter();
   const doc = parseDocument(text, { lineCounter, prettyErrors: false, uniqueKeys: true });
-  const problems: Problem[] = [];
-  const at = (severity: Severity, from: number, to: number, path: string, message: string) => {
-    const { line, col } = lineCounter.linePos(from);
-    problems.push({ severity, from, to: Math.max(to, from), line, col, path, message });
-  };
+  const file: ParsedFile = { text, doc, lineCounter, problems: [] };
+  for (const e of doc.errors) file.problems.push(problemAt(file, 'error', e.pos, '', `YAML: ${firstLine(e.message)}`));
+  for (const w of doc.warnings) file.problems.push(problemAt(file, 'warning', w.pos, '', `YAML: ${firstLine(w.message)}`));
+  if (!doc.errors.length) file.data = doc.toJS() ?? {};
+  return file;
+}
 
-  for (const e of doc.errors) at('error', e.pos[0], e.pos[1], '', `YAML: ${firstLine(e.message)}`);
-  for (const w of doc.warnings) at('warning', w.pos[0], w.pos[1], '', `YAML: ${firstLine(w.message)}`);
-  if (doc.errors.length) return { problems: sorted(problems) };
+export function problemAt(
+  file: Pick<ParsedFile, 'lineCounter'>,
+  severity: Severity,
+  [from, to]: readonly [number, number],
+  path: string,
+  message: string,
+): Problem {
+  const { line, col } = file.lineCounter.linePos(from);
+  return { severity, from, to: Math.max(to, from), line, col, path, message };
+}
 
-  let data: unknown = doc.toJS() ?? {};
+/** A schema failure, at a path in the data, worded for people. */
+export interface SchemaError {
+  segments: Segment[];
+  keyword: string;
+  message: string;
+  /** For an unknown field: the path of the field itself, whose key should be underlined. */
+  fieldSegments?: Segment[];
+}
+
+export function schemaErrors(data: unknown): SchemaError[] {
+  if (check(data)) return [];
+  return simplify(check.errors ?? []).map((err) => {
+    const segments = pointerToSegments(err.instancePath);
+    const extra = err.keyword === 'additionalProperties' ? String(err.params.additionalProperty) : undefined;
+    return {
+      segments,
+      keyword: err.keyword,
+      message: describe(err),
+      fieldSegments: extra === undefined ? undefined : [...segments, extra],
+    };
+  });
+}
+
+/** Where to underline a schema error inside one file. */
+export function locateError(file: ParsedFile, err: SchemaError): [number, number] {
+  const loc = err.fieldSegments
+    ? locate(file.doc, file.text, err.fieldSegments, true)
+    : locate(file.doc, file.text, err.segments);
+  return [loc.from, loc.to];
+}
+
+export function validate(text: string): Result {
+  const file = parseFile(text);
+  const problems = [...file.problems];
+  if (file.data === undefined) return { problems: sorted(problems) };
+
+  let data = file.data;
   if (!isPlainObject(data)) {
-    at('error', 0, lineEnd(text, 0), '', 'the top level must be a mapping (key: value pairs)');
+    problems.push(problemAt(file, 'error', [0, lineEnd(text, 0)], '', TOP_LEVEL_MESSAGE));
     return { problems: sorted(problems), data };
   }
 
@@ -57,24 +112,19 @@ export function validate(text: string): Result {
   if ('extends' in data) {
     const { extends: _ignored, ...rest } = data;
     data = rest;
-    const key = locate(doc, text, ['extends'], true);
-    at('warning', key.from, key.to, 'extends',
+    const key = locate(file.doc, text, ['extends'], true);
+    problems.push(problemAt(file, 'warning', [key.from, key.to], 'extends',
       'extends: is resolved when you build from your GitHub repo; this file is checked on its own, ' +
-        'so fields it inherits may be reported as missing');
+        'so fields it inherits may be reported as missing'));
   }
 
-  if (!check(data)) {
-    for (const err of simplify(check.errors ?? [])) {
-      const segments = pointerToSegments(err.instancePath);
-      const extraKey = err.keyword === 'additionalProperties' ? String(err.params.additionalProperty) : undefined;
-      const loc = extraKey
-        ? locate(doc, text, [...segments, extraKey], true)
-        : locate(doc, text, segments);
-      at('error', loc.from, loc.to, formatPath(segments), describe(err));
-    }
+  for (const err of schemaErrors(data)) {
+    problems.push(problemAt(file, 'error', locateError(file, err), formatPath(err.segments), err.message));
   }
   return { problems: sorted(dedupe(problems)), data };
 }
+
+export const TOP_LEVEL_MESSAGE = 'the top level must be a mapping (key: value pairs)';
 
 // --- turning Ajv errors into readable messages -------------------------------------------
 
@@ -128,7 +178,7 @@ function typeName(type: string | string[], items?: SchemaNode): string {
 
 // --- mapping a path in the data back to the source text ---------------------------------
 
-type Segment = string | number;
+export type Segment = string | number;
 
 function pointerToSegments(pointer: string): Segment[] {
   if (!pointer) return [];
@@ -151,7 +201,7 @@ export function formatPath(segments: Segment[]): string {
  * list is represented by the key that holds it (underlining a whole block is just noise).
  * `keyOnly` underlines the key even for a scalar (for an unknown field, the key is the mistake).
  */
-function locate(doc: Document, text: string, segments: Segment[], keyOnly = false): { from: number; to: number } {
+export function locate(doc: Document, text: string, segments: Segment[], keyOnly = false): { from: number; to: number } {
   let node: Node | null = doc.contents as Node | null;
   let keyRange: [number, number] | undefined;
   let valueRange: [number, number] | undefined = rangeOf(node);
@@ -188,7 +238,7 @@ function rangeOf(node: Node | null | undefined): [number, number] | undefined {
 
 // --- small helpers -------------------------------------------------------------------------
 
-function isPlainObject(v: unknown): v is Record<string, unknown> {
+export function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
@@ -196,16 +246,16 @@ function firstLine(s: string): string {
   return s.split('\n')[0];
 }
 
-function lineEnd(text: string, from: number): number {
+export function lineEnd(text: string, from: number): number {
   const i = text.indexOf('\n', from);
   return i === -1 ? text.length : i;
 }
 
-function sorted(problems: Problem[]): Problem[] {
+export function sorted<T extends Problem>(problems: T[]): T[] {
   return problems.sort((a, b) => a.from - b.from || a.message.localeCompare(b.message));
 }
 
-function dedupe(problems: Problem[]): Problem[] {
+export function dedupe<T extends Problem>(problems: T[]): T[] {
   const seen = new Set<string>();
   return problems.filter((p) => {
     const k = `${p.from}:${p.to}:${p.message}`;

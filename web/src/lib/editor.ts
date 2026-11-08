@@ -8,14 +8,23 @@ import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { indentWithTab } from '@codemirror/commands';
 import { suggest } from './complete';
-import { validate, type Problem } from './validate';
+import type { Problem } from './validate';
 
 export interface EditorOptions {
   parent: HTMLElement;
-  doc: string;
   dark: boolean;
-  /** Called after each change is validated (debounced by the linter). */
-  onValidated: (text: string, problems: Problem[], data: unknown) => void;
+  /**
+   * Check the open file (debounced by the linter) and return the problems to underline in it.
+   * Problems in other files belong in the page's list, not here.
+   */
+  check: (text: string) => Problem[];
+}
+
+/** One editor view; each open file has its own state (text, undo history, selection). */
+export interface Editor {
+  view: EditorView;
+  /** A fresh state for a file's text, to show with `view.setState`. */
+  stateFor: (text: string) => EditorState;
 }
 
 function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
@@ -37,19 +46,15 @@ function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
   };
 }
 
-export function createEditor(opts: EditorOptions): EditorView {
+export function createEditor(opts: EditorOptions): Editor {
   const resumeLint = linter(
-    (view): Diagnostic[] => {
-      const text = view.state.doc.toString();
-      const { problems, data } = validate(text);
-      opts.onValidated(text, problems, data);
-      return problems.map((p) => ({
+    (view): Diagnostic[] =>
+      opts.check(view.state.doc.toString()).map((p) => ({
         from: p.from,
         to: p.to,
         severity: p.severity,
         message: p.path ? `${p.path}: ${p.message}` : p.message,
-      }));
-    },
+      })),
     { delay: 250 },
   );
 
@@ -66,7 +71,8 @@ export function createEditor(opts: EditorOptions): EditorView {
   ];
   if (opts.dark) extensions.push(oneDark);
 
-  return new EditorView({ parent: opts.parent, doc: opts.doc, extensions });
+  const stateFor = (text: string) => EditorState.create({ doc: text, extensions });
+  return { view: new EditorView({ parent: opts.parent, state: stateFor('') }), stateFor };
 }
 
 export function replaceDoc(view: EditorView, text: string): void {

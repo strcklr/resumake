@@ -1,0 +1,5 @@
+# Lists replace the parent's list entirely; they are not merged item by item.
+extends: base.yml
+work:
+  - company: Three
+    position: Lead

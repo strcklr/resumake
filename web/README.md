@@ -4,7 +4,8 @@
 
 A browser editor for resumake YAML: syntax highlighting, field autocomplete, validation against
 resumake's own schema with errors underlined on the exact line, and a live preview rendered by
-resumake's own Python and HTML template. Drafts stay in your browser.
+resumake's own Python and HTML template. Tailored resumes that `extends:` a base work across files.
+Your files stay in your browser.
 
 The page opens on a splash screen (`src/Splash.svelte`) whose button scrolls down to the editor.
 
@@ -80,6 +81,8 @@ has errors, the last valid version stays on screen, dimmed.
 | File | |
 |---|---|
 | `src/lib/validate.ts` | Parses YAML (keeping source positions), validates with Ajv, maps each error to a line |
+| `src/lib/workspace.ts` | Several files at once: resolves `extends:`, validates, maps problems to files, lists inherited fields |
+| `src/lib/files.ts` | The browser's file store: saving, opening a folder, zipping, naming new files |
 | `src/lib/complete.ts` | Field and section-name suggestions from the schema |
 | `src/lib/editor.ts` | CodeMirror setup: YAML mode, lint, autocomplete |
 | `src/lib/pyrender.ts` | Loads resumake into Pyodide and renders HTML (shared by the worker and tests) |
@@ -89,5 +92,30 @@ has errors, the last valid version stays on screen, dimmed.
 | `src/Splash.svelte` | The landing screen above the editor |
 | `src/GitHubSteps.svelte` | Steps for the private-repo workflow (hidden for now) |
 
-`extends:` isn't resolved in the browser: a file that uses it is checked on its own, with a warning.
-Resolving it across files arrives with GitHub sign-in.
+## Tailored resumes (`extends:`)
+
+The editor holds several files, so a base resume and tailored variants that `extends:` it work
+together, as they do with the CLI:
+
+- **Files:** tabs above the editor, with **+** for a new tailored file (it starts with `extends:`
+  pointing at `default.yml`), and Rename, Delete and "Download this file" below. **×** (or a
+  middle-click) closes a tab but keeps the file, so variants that extend it still resolve; reopen it
+  from the **Files** list, which shows every file. Opening a problem or inherited field in a closed
+  file reopens its tab. **Open folder** loads
+  a whole `resumes/` folder; **Download all** saves every file as a `.zip` with its folders. Files are
+  kept in this browser (`localStorage`) until GitHub sync (#5) replaces that.
+- **Checking:** each file is checked with its `extends:` chain resolved. Problems are listed for every
+  file in the chain and point to where the fix goes: a bad value to the file that set it, an unknown
+  field to the file that wrote it, a missing or circular `extends:` to that line. Clicking one opens
+  that file. Tabs with errors get a red dot.
+- **Preview:** the merged resume, as `resumake build` would make it. Shared fragments (a path part
+  starting with `_`) aren't built on their own, so they have no preview.
+- **Inherited:** for a file that extends others, this tab lists the fields that come from them; click
+  one to jump to where it's written.
+- **Extended by:** for a file that others extend (e.g. `default.yml`), this tab draws the tree of files
+  that inherit from it, directly or through another file. Click one to open it. It counts every file
+  in the workspace, including ones whose tabs are closed.
+
+The engine is `src/lib/workspace.ts`. Its merge is a port of `deep_merge` in
+`src/resumake/loader.py`, and both are tested against the shared cases in `tests/fixtures/extends/`,
+so a change to the merge rules has to be made in both.
