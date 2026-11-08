@@ -154,6 +154,17 @@ workflow with the tests turned on and releases turned off.
 To add a format, write a `render(ctx, out_path)` function and register it in
 `src/resumake/renderers/__init__.py`.
 
+## Web editor (proof of concept)
+
+[`web/`](web/) is a browser editor for resume YAML: highlighting, field autocomplete, validation
+against the same schema as `resumake validate` with errors on the exact line, and a live preview
+rendered by resumake's own Python and template running in the browser (Pyodide). GitHub sign-in and
+saving aren't built yet. See [`web/README.md`](web/README.md).
+
+```bash
+cd web && npm install && npm run dev
+```
+
 ## Development
 
 ```bash

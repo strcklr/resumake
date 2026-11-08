@@ -180,3 +180,14 @@ def test_project_tech_stack_is_subtitle():
         {"name": "P", "url": "https://x.dev", "keywords": ["Go", "DynamoDB"], "start": 2020, "end": 2021}]})
     entry = ctx["sections"][0]["entries"][0]
     assert (entry["subtitle"], entry["keywords"], entry["dates"]) == ("Go, DynamoDB", [], "2020 – 2021")
+
+
+# --- web editor schema -----------------------------------------------------
+
+def test_web_schema_is_in_sync():
+    """The web editor validates against a copy of SCHEMA; regenerate it if this fails:
+    `resumake schema -o web/src/lib/schema.json`."""
+    from resumake.cli import schema_json
+
+    committed = (ROOT / "web" / "src" / "lib" / "schema.json").read_text(encoding="utf-8")
+    assert committed == schema_json()
