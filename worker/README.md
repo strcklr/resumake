@@ -29,6 +29,8 @@ GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App*
 - **Name:** `resumake` (its URL slug is used in the editor's "give it access" link)
 - **Homepage URL:** `https://resumake.chasestrickler.com`
 - **Callback URL:** `https://resumake.chasestrickler.com/`
+  (the editor doesn't send its own address, so GitHub always returns people here; keep the Pages
+  site on **Enforce HTTPS**)
 - **Expire user authorization tokens:** on
 - **Request user authorization (OAuth) during installation:** on (installing then also signs you in)
 - **Webhook:** off (uncheck **Active**)

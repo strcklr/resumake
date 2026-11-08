@@ -3,7 +3,6 @@
   // and open the repo's resumes in the editor. Saving back arrives in the next step of #5.
   import { onMount } from 'svelte';
   import {
-    callbackUrl,
     config,
     exchangeCode,
     GitHub,
@@ -184,7 +183,7 @@
           that repo's files and pull requests, and nothing else. Your sign-in lasts until you close this tab, at most
           8 hours.
         </p>
-        <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg, callbackUrl()))}>
+        <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg))}>
           Sign in with GitHub
         </button>
       {/if}
