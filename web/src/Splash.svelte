@@ -22,8 +22,8 @@
       <p class="eyebrow">Open source · runs entirely in your browser</p>
       <h1>Your resume, written once.</h1>
       <p class="lede">
-        Write your resume once in YAML and export it to PDF, HTML, Word, and Markdown. The editor
-        renders a live preview that you can export, all in your browser.
+        Write your resume once in YAML and export it to PDF, HTML, Word, and Markdown. See a live
+        preview of your resume as you type, all in your browser.
       </p>
       <div class="cta">
         <a class="button primary" href="#editor">
