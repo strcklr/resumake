@@ -2,35 +2,65 @@
   import type { EditorView } from '@codemirror/view';
   import { onMount } from 'svelte';
   import sample from '../../resumes/default.yml?raw';
+  import GitHubSteps from './GitHubSteps.svelte';
+  import Preview from './Preview.svelte';
   import { download, loadDraft, saveDraft } from './lib/draft';
   import { createEditor, jumpTo, replaceDoc } from './lib/editor';
+  import { PreviewClient } from './lib/preview';
   import type { Problem } from './lib/validate';
-  import GitHubSteps from './GitHubSteps.svelte';
+
+  type Tab = 'preview' | 'problems' | 'github';
 
   let host: HTMLDivElement;
   let fileInput: HTMLInputElement;
   let view: EditorView | undefined;
+  let preview: PreviewClient | undefined;
 
   let problems: Problem[] = $state([]);
   let checked = $state(false);
   let fileName = $state('resume.yml');
+  let tab: Tab = $state('preview');
+
+  let html: string | null = $state(null);
+  let loading: string | null = $state('Starting…');
+  let failed: string | null = $state(null);
+  let renderError: string | null = $state(null);
 
   const errors = $derived(problems.filter((p) => p.severity === 'error').length);
   const warnings = $derived(problems.length - errors);
+  const stale = $derived(checked && errors > 0);
 
   onMount(() => {
-    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    preview = new PreviewClient({
+      onStatus: (stage) => (loading = stage),
+      onReady: () => (loading = null),
+      onFailed: (error) => {
+        failed = error;
+        loading = null;
+      },
+      onRendered: (out) => {
+        html = out;
+        renderError = null;
+      },
+      onError: (error) => (renderError = error),
+    });
+
     view = createEditor({
       parent: host,
       doc: loadDraft() ?? sample,
-      dark,
-      onValidated: (text, found) => {
+      dark: matchMedia('(prefers-color-scheme: dark)').matches,
+      onValidated: (text, found, data) => {
         problems = found;
         checked = true;
         saveDraft(text);
+        // Render only what passes validation; otherwise keep showing the last good version.
+        if (!found.some((p) => p.severity === 'error')) preview?.render(data);
       },
     });
-    return () => view?.destroy();
+    return () => {
+      view?.destroy();
+      preview?.destroy();
+    };
   });
 
   function loadSample() {
@@ -47,6 +77,12 @@
     fileName = file.name;
     fileInput.value = '';
   }
+
+  function showProblem(p: Problem) {
+    if (view) jumpTo(view, p.from, p.to);
+  }
+
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 </script>
 
 <header class="top">
@@ -54,7 +90,7 @@
     <span class="logo" aria-hidden="true">r</span>
     <div>
       <h1>resumake editor</h1>
-      <p class="tag">Proof of concept · edits and checks one resume file in your browser</p>
+      <p class="tag">Proof of concept · edit, check and preview one resume file in your browser</p>
     </div>
   </div>
   <div class="actions">
@@ -68,36 +104,60 @@
 </header>
 
 <main class="layout">
-  <section class="editor-pane" aria-label="Editor">
+  <section class="pane editor-pane" aria-label="Editor">
     <div class="pane-head">
       <span class="file">{fileName}</span>
-      <span class="hint">Ctrl+Space for field suggestions · draft saved in this browser</span>
+      <button
+        type="button"
+        class="status-pill"
+        class:ok={checked && errors === 0}
+        class:bad={errors > 0}
+        onclick={() => (tab = 'problems')}
+        aria-live="polite"
+      >
+        <span class="dot" aria-hidden="true"></span>
+        {#if !checked}
+          Checking…
+        {:else if errors}
+          {plural(errors, 'problem')}
+        {:else}
+          Valid{warnings ? ` · ${plural(warnings, 'warning')}` : ''}
+        {/if}
+      </button>
     </div>
     <div class="editor" bind:this={host}></div>
+    <p class="pane-foot">Ctrl+Space suggests fields · your draft is saved in this browser</p>
   </section>
 
-  <aside class="side">
-    <section class="card" aria-live="polite">
-      <h2>Validation</h2>
+  <section class="pane side-pane">
+    <div class="tabs" role="tablist" aria-label="Side panel">
+      <button role="tab" type="button" aria-selected={tab === 'preview'} onclick={() => (tab = 'preview')}>Preview</button>
+      <button role="tab" type="button" aria-selected={tab === 'problems'} onclick={() => (tab = 'problems')}>
+        Problems
+        {#if problems.length}<span class="count" class:has-errors={errors > 0}>{problems.length}</span>{/if}
+      </button>
+      <button role="tab" type="button" aria-selected={tab === 'github'} onclick={() => (tab = 'github')}>Save to GitHub</button>
+    </div>
+
+    <!-- Kept mounted while hidden, so the preview stays rendered and its scroll position survives. -->
+    <div class="tab-body flush" role="tabpanel" hidden={tab !== 'preview'}>
+      <Preview {html} {loading} {failed} error={renderError} {stale} {fileName} />
+    </div>
+
+    <div class="tab-body" role="tabpanel" hidden={tab !== 'problems'}>
       {#if !checked}
         <p class="status muted">Checking…</p>
-      {:else if errors === 0}
-        <p class="status ok">
-          <span class="dot" aria-hidden="true"></span>
-          Valid resumake resume{warnings ? ` · ${warnings} warning${warnings === 1 ? '' : 's'}` : ''}
-        </p>
+      {:else if problems.length === 0}
+        <p class="status ok"><span class="dot" aria-hidden="true"></span>No problems: this is a valid resumake resume.</p>
       {:else}
-        <p class="status bad">
+        <p class="status" class:bad={errors > 0}>
           <span class="dot" aria-hidden="true"></span>
-          {errors} problem{errors === 1 ? '' : 's'}{warnings ? ` · ${warnings} warning${warnings === 1 ? '' : 's'}` : ''}
+          {errors ? plural(errors, 'problem') : ''}{errors && warnings ? ' · ' : ''}{warnings ? plural(warnings, 'warning') : ''}
         </p>
-      {/if}
-
-      {#if problems.length}
         <ul class="problems">
           {#each problems as p (p.from + p.message)}
             <li>
-              <button type="button" class={p.severity} onclick={() => view && jumpTo(view, p.from, p.to)}>
+              <button type="button" class={p.severity} onclick={() => showProblem(p)}>
                 <span class="where">Line {p.line}{p.path ? ` · ${p.path}` : ''}</span>
                 <span class="msg">{p.message}</span>
               </button>
@@ -106,16 +166,10 @@
         </ul>
       {/if}
       <p class="note">Checked against the same schema as <code>resumake validate</code>.</p>
-    </section>
+    </div>
 
-    <section class="card placeholder">
-      <h2>Preview <span class="soon">Coming soon</span></h2>
-      <p>
-        A live preview rendered by resumake's own HTML template, running in your browser, is the next step.
-        For now, run <code>resumake build</code> locally or let your repo's workflow build the PDF.
-      </p>
-    </section>
-
-    <GitHubSteps />
-  </aside>
+    <div class="tab-body" role="tabpanel" hidden={tab !== 'github'}>
+      <GitHubSteps />
+    </div>
+  </section>
 </main>

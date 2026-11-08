@@ -15,7 +15,7 @@ export interface EditorOptions {
   doc: string;
   dark: boolean;
   /** Called after each change is validated (debounced by the linter). */
-  onValidated: (text: string, problems: Problem[]) => void;
+  onValidated: (text: string, problems: Problem[], data: unknown) => void;
 }
 
 function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
@@ -41,8 +41,8 @@ export function createEditor(opts: EditorOptions): EditorView {
   const resumeLint = linter(
     (view): Diagnostic[] => {
       const text = view.state.doc.toString();
-      const { problems } = validate(text);
-      opts.onValidated(text, problems);
+      const { problems, data } = validate(text);
+      opts.onValidated(text, problems, data);
       return problems.map((p) => ({
         from: p.from,
         to: p.to,

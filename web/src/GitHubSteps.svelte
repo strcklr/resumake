@@ -7,7 +7,7 @@
   const NEW_REPO = 'https://github.com/new';
 </script>
 
-<section class="card">
+<section class="github">
   <h2>Keep it in your own private GitHub repo</h2>
   <p>
     Your resume lives in a private repo you own. Its GitHub Actions workflow builds the PDF and Word file on

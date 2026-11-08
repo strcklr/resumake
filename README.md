@@ -156,9 +156,10 @@ To add a format, write a `render(ctx, out_path)` function and register it in
 
 ## Web editor (proof of concept)
 
-[`web/`](web/) is a browser editor for resume YAML: highlighting, field autocomplete and validation
-against the same schema as `resumake validate`, with errors on the exact line. GitHub sign-in, saving
-and a live preview are placeholders for now. See [`web/README.md`](web/README.md).
+[`web/`](web/) is a browser editor for resume YAML: highlighting, field autocomplete, validation
+against the same schema as `resumake validate` with errors on the exact line, and a live preview
+rendered by resumake's own Python and template running in the browser (Pyodide). GitHub sign-in and
+saving are placeholders for now. See [`web/README.md`](web/README.md).
 
 ```bash
 cd web && npm install && npm run dev

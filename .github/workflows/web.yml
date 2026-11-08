@@ -3,10 +3,10 @@ name: Web editor
 
 on:
   pull_request:
-    paths: ["web/**", "resumes/**", "src/resumake/schema.py", ".github/workflows/web.yml"]
+    paths: ["web/**", "resumes/**", "src/resumake/**", ".github/workflows/web.yml"]
   push:
     branches: [main]
-    paths: ["web/**", "resumes/**", "src/resumake/schema.py", ".github/workflows/web.yml"]
+    paths: ["web/**", "resumes/**", "src/resumake/**", ".github/workflows/web.yml"]
   workflow_dispatch:
 
 jobs:
