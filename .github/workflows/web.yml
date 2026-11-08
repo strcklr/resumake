@@ -1,4 +1,8 @@
-# Type-check, test and build the web editor in web/.
+# Type-check, test and build the web editor in web/. On main, also deploy it to GitHub Pages.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# If chasestrickler.com is the custom domain of the strcklr.github.io site, this project is then
+# served at https://chasestrickler.com/resumake/ with no DNS changes.
 name: Web editor
 
 on:
@@ -7,7 +11,7 @@ on:
   push:
     branches: [main]
     paths: ["web/**", "resumes/**", "src/resumake/**", ".github/workflows/web.yml"]
-  workflow_dispatch:
+  workflow_dispatch: # run by hand on main to redeploy
 
 jobs:
   web:
@@ -26,3 +30,27 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+      - name: Upload the site for Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    # Only main deploys, and only after the checks, tests and build above pass.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Let a running deploy finish rather than cancelling it halfway; a newer one queues behind it.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
