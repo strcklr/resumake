@@ -10,7 +10,6 @@
   --bad: #b3261e;
   --warn: #8a5a00;
   --code-bg: #eef1f5;
-  --splash-glow: rgb(35 90 140 / 0.12);
   color-scheme: light;
 }
 
@@ -27,7 +26,6 @@
     --bad: #ff8a80;
     --warn: #f0c060;
     --code-bg: #2a3038;
-    --splash-glow: rgb(110 168 220 / 0.14);
     color-scheme: dark;
   }
 }

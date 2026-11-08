@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "Browser editor for resumake YAML resumes (proof of concept).",
+  "description": "Browser editor for resumake YAML resumes.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

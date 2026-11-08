@@ -80,9 +80,7 @@
     display: flex;
     flex-direction: column;
     padding: 1.25rem clamp(1rem, 4vw, 3rem) 3.5rem;
-    background:
-      radial-gradient(1200px 600px at 85% 10%, var(--splash-glow), transparent 60%),
-      var(--bg);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 
