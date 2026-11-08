@@ -11,6 +11,7 @@
     download,
     invalidName,
     loadWorkspace,
+    neighbor,
     newVariant,
     outputName,
     readPicked,
@@ -38,6 +39,9 @@
   const saved = loadWorkspace();
   let files: Record<string, string> = $state(saved.files);
   let active = $state(saved.active);
+  /** Files open as tabs. Closing a tab keeps the file, so variants that extend it still resolve. */
+  let tabs = $state(saved.tabs);
+  let filesMenuOpen = $state(false);
   // Each file keeps its own editor state (undo history, selection) while you switch between them.
   const states = new Map<string, EditorState>();
 
@@ -74,33 +78,49 @@
     const snapshot = $state.snapshot(files);
     const result = new Workspace(snapshot).resolve(active);
     resolved = result;
-    saveWorkspace({ files: snapshot, active });
+    persist(snapshot);
     // Render only what passes validation; otherwise keep showing the last good version.
     if (!partial && result.data && !result.problems.some((p) => p.severity === 'error')) preview?.render(result.data);
     return result.problems.filter((p) => p.file === active);
   }
 
-  /** Show a file in the editor, optionally selecting a range in it. */
+  function persist(snapshot = $state.snapshot(files)) {
+    saveWorkspace({ files: snapshot, active, tabs: $state.snapshot(tabs) });
+  }
+
+  /** Show a file in the editor (opening its tab if it's closed), optionally selecting a range in it. */
   function open(path: string, range?: readonly [number, number]) {
     if (!editor) return;
+    filesMenuOpen = false;
+    if (!tabs.includes(path)) tabs.push(path);
     if (path !== active) {
       states.set(active, editor.view.state);
       active = path;
       resolved = null;
       editor.view.setState(states.get(path) ?? editor.stateFor(files[path]));
-      saveWorkspace({ files: $state.snapshot(files), active });
     }
+    persist();
     if (range) jumpTo(editor.view, range[0], range[1]);
   }
 
+  /** Close a tab. The file stays; reopen it from the Files list. The last open tab can't close. */
+  function closeTab(path: string) {
+    if (tabs.length === 1) return;
+    const next = neighbor(tabs, path)!;
+    if (path === active) open(next);
+    tabs = tabs.filter((t) => t !== path);
+    persist();
+  }
+
   /** Replace every file (sample, opened folder) and show `first`. */
-  function replaceAll(next: Record<string, string>, first: string) {
+  function replaceAll(next: Record<string, string>, first: string, openTabs: string[]) {
     states.clear();
     files = next;
     active = first;
+    tabs = openTabs;
     resolved = null;
     editor?.view.setState(editor.stateFor(next[first]));
-    saveWorkspace({ files: next, active: first });
+    persist(next);
   }
 
   onMount(() => {
@@ -153,10 +173,11 @@
     delete files[active];
     files[name] = text;
     states.set(name, state);
+    tabs = tabs.map((t) => (t === active ? name : t));
     active = name;
     resolved = null;
     editor.view.setState(state);
-    saveWorkspace({ files: $state.snapshot(files), active });
+    persist();
   }
 
   function deleteFile() {
@@ -166,19 +187,21 @@
     }
     if (!confirm(`Delete ${active}? Files that extend it will stop resolving.`)) return;
     const gone = active;
-    const next = paths.find((p) => p !== gone)!;
+    const next = neighbor(tabs, gone) ?? paths.find((p) => p !== gone)!;
     states.delete(gone);
     delete files[gone];
+    tabs = tabs.filter((t) => t !== gone);
+    if (!tabs.includes(next)) tabs.push(next);
     active = next;
     resolved = null;
     editor?.view.setState(states.get(next) ?? editor.stateFor(files[next]));
-    saveWorkspace({ files: $state.snapshot(files), active });
+    persist();
   }
 
   function loadSample() {
     if (confirm('Replace all your files with the sample resume and its tailored variant?')) {
       const sample = sampleWorkspace();
-      replaceAll(sample.files, sample.active);
+      replaceAll(sample.files, sample.active, sample.tabs);
     }
   }
 
@@ -194,9 +217,11 @@
       files[name] = text;
       states.delete(name);
     }
+    for (const name of names) if (!tabs.includes(name)) tabs.push(name);
     if (names.includes(active)) {
       resolved = null;
       editor?.view.setState(editor.stateFor(files[active]));
+      persist();
     } else open(names[0]);
   }
 
@@ -210,7 +235,9 @@
       return;
     }
     if (!confirm(`Replace all your files with the ${names.length} resume file${names.length === 1 ? '' : 's'} in that folder?`)) return;
-    replaceAll(picked, names.includes(BASE_FILE) ? BASE_FILE : names[0]);
+    // Open just the base file; the rest are a click away in the Files list.
+    const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
+    replaceAll(picked, first, [first]);
   }
 
   function downloadFile() {
@@ -231,6 +258,12 @@
 
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 </script>
+
+<svelte:window
+  onkeydown={(e) => e.key === 'Escape' && (filesMenuOpen = false)}
+  onblur={() => (filesMenuOpen = false)}
+  onclick={(e) => filesMenuOpen && !(e.target as Element).closest('.files-menu') && (filesMenuOpen = false)}
+/>
 
 <Splash />
 
@@ -258,20 +291,49 @@
 <main class="layout">
   <section class="pane editor-pane" aria-label="Editor">
     <div class="pane-head files-head">
-      <div class="file-tabs" role="tablist" aria-label="Files">
-        {#each paths as path (path)}
-          <button
-            type="button"
-            role="tab"
-            class="file-tab"
-            class:partial={isPartial(path)}
-            aria-selected={path === active}
-            title={isPartial(path) ? `${path} (shared fragment)` : path}
-            onclick={() => open(path)}
-          >
-            {#if filesWithErrors.has(path)}<span class="file-error" title="Has problems"></span>{/if}
-            {path}
-          </button>
+      <div class="files-menu">
+        <button
+          type="button"
+          class="files-toggle"
+          aria-expanded={filesMenuOpen}
+          aria-controls="files-list"
+          title="All files"
+          onclick={() => (filesMenuOpen = !filesMenuOpen)}
+        >
+          Files <span class="count">{paths.length}</span>
+        </button>
+        {#if filesMenuOpen}
+          <ul id="files-list" class="files-list">
+            {#each paths as path (path)}
+              <li>
+                <button type="button" class:current={path === active} onclick={() => open(path)}>
+                  {#if filesWithErrors.has(path)}<span class="file-error" title="Has problems"></span>{/if}
+                  <span class="files-list-name" class:partial={isPartial(path)}>{path}</span>
+                  {#if !tabs.includes(path)}<span class="files-list-closed">closed</span>{/if}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+      <div class="file-tabs" role="tablist" aria-label="Open files">
+        {#each tabs as path (path)}
+          <div class="file-tab" class:partial={isPartial(path)} class:current={path === active}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={path === active}
+              title={isPartial(path) ? `${path} (shared fragment)` : path}
+              onclick={() => open(path)}
+              onauxclick={(e) => e.button === 1 && closeTab(path)}
+            >
+              {#if filesWithErrors.has(path)}<span class="file-error" title="Has problems"></span>{/if}
+              {path}
+            </button>
+            {#if tabs.length > 1}
+              <button type="button" class="tab-close" aria-label={`Close ${path}`} title="Close tab (the file is kept)" onclick={() => closeTab(path)}>×</button>
+            {/if}
+          </div>
         {/each}
         <button type="button" class="file-add" onclick={newFile} title="New tailored file" aria-label="New file">+</button>
       </div>

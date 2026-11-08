@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { invalidName, newVariant, outputName, relativePath, sampleWorkspace, sortPaths } from './files';
+import { invalidName, neighbor, newVariant, outputName, relativePath, sampleWorkspace, sortPaths } from './files';
 import { Workspace } from './workspace';
 
 describe('files', () => {
@@ -34,5 +34,11 @@ describe('files', () => {
   it('orders base files before folders and names outputs like the CLI', () => {
     expect(sortPaths(['tailored/b.yml', 'default.yml', '_shared/x.yml'])).toEqual(['default.yml', '_shared/x.yml', 'tailored/b.yml']);
     expect(outputName('tailored/acme.yml')).toBe('tailored-acme');
+  });
+
+  it('moves to the next tab, or the previous one, when a tab closes', () => {
+    expect(neighbor(['a.yml', 'b.yml', 'c.yml'], 'b.yml')).toBe('c.yml');
+    expect(neighbor(['a.yml', 'b.yml', 'c.yml'], 'c.yml')).toBe('b.yml');
+    expect(neighbor(['a.yml'], 'a.yml')).toBeUndefined();
   });
 });

@@ -98,7 +98,10 @@ The editor holds several files, so a base resume and tailored variants that `ext
 together, as they do with the CLI:
 
 - **Files:** tabs above the editor, with **+** for a new tailored file (it starts with `extends:`
-  pointing at `default.yml`), and Rename, Delete and "Download this file" below. **Open folder** loads
+  pointing at `default.yml`), and Rename, Delete and "Download this file" below. **×** (or a
+  middle-click) closes a tab but keeps the file, so variants that extend it still resolve; reopen it
+  from the **Files** list, which shows every file. Opening a problem or inherited field in a closed
+  file reopens its tab. **Open folder** loads
   a whole `resumes/` folder; **Download all** saves every file as a `.zip` with its folders. Files are
   kept in this browser (`localStorage`) until GitHub sync (#5) replaces that.
 - **Checking:** each file is checked with its `extends:` chain resolved. Problems are listed for every

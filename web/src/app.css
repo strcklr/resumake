@@ -143,14 +143,49 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .files-head { flex-wrap: nowrap; gap: 0.5rem; padding: 0 0.5rem 0 0; }
 .file-tabs { display: flex; align-items: stretch; min-width: 0; overflow-x: auto; scrollbar-width: thin; flex: 1; }
 .file-tab {
-  border: 0; border-radius: 0; border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
-  background: none; padding: 0.5rem 0.75rem; white-space: nowrap;
+  display: inline-flex; align-items: stretch; flex: none;
+  border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
+}
+.file-tab.current { background: var(--code-bg); border-bottom-color: var(--accent); }
+.file-tab > button[role='tab'] {
+  border: 0; border-radius: 0; background: none; padding: 0.5rem 0.25rem 0.5rem 0.75rem; white-space: nowrap;
   font: 0.78rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted);
   display: inline-flex; align-items: center; gap: 0.35rem;
 }
-.file-tab:hover { color: var(--text); }
-.file-tab[aria-selected='true'] { color: var(--text); background: var(--code-bg); border-bottom-color: var(--accent); }
-.file-tab.partial { font-style: italic; }
+.file-tab:not(:has(.tab-close)) > button[role='tab'] { padding-right: 0.75rem; }
+.file-tab.current > button[role='tab'], .file-tab > button[role='tab']:hover { color: var(--text); }
+.file-tab.partial > button[role='tab'] { font-style: italic; }
+.tab-close {
+  border: 0; border-radius: 4px; background: none; color: var(--muted);
+  width: 1.4rem; margin: auto 0.35rem auto 0; height: 1.4rem; padding: 0; line-height: 1; font-size: 0.95rem;
+  opacity: 0; transition: opacity 0.1s;
+}
+.file-tab:hover .tab-close, .file-tab.current .tab-close, .tab-close:focus-visible { opacity: 1; }
+.tab-close:hover { background: var(--border); color: var(--text); }
+@media (hover: none) { .tab-close { opacity: 1; } }
+
+.files-menu { position: relative; flex: none; border-right: 1px solid var(--border); }
+.files-toggle {
+  border: 0; border-radius: 0; background: none; height: 100%;
+  padding: 0.5rem 0.7rem; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 0.35rem;
+}
+.files-toggle:hover, .files-toggle[aria-expanded='true'] { color: var(--text); }
+.files-list {
+  position: absolute; top: calc(100% + 4px); left: 4px; z-index: 20;
+  list-style: none; margin: 0; padding: 0.3rem; min-width: 16rem; max-width: min(28rem, 80vw); max-height: 60vh; overflow: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.files-list button {
+  width: 100%; border: 0; background: none; text-align: left; padding: 0.4rem 0.55rem; border-radius: 5px;
+  display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;
+}
+.files-list button:hover { background: var(--code-bg); }
+.files-list button.current { color: var(--accent); font-weight: 600; }
+.files-list-name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files-list-name.partial { font-style: italic; }
+.files-list-closed { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
 .file-error { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--bad); flex: none; }
 .file-add {
   border: 0; border-radius: 0; background: none; color: var(--muted);

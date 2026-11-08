@@ -14,6 +14,8 @@ import type { Files } from './workspace';
 export interface Saved {
   files: Files;
   active: string;
+  /** Files open as tabs, in tab order. Closing a tab keeps the file. */
+  tabs: string[];
 }
 
 const KEY = 'resumake:workspace';
@@ -23,20 +25,24 @@ const OLD_DRAFT_KEY = 'resumake:draft';
 export const BASE_FILE = 'default.yml';
 
 export function sampleWorkspace(): Saved {
-  return { files: { [BASE_FILE]: sampleBase, 'tailored/example-platform.yml': sampleTailored }, active: BASE_FILE };
+  const files = { [BASE_FILE]: sampleBase, 'tailored/example-platform.yml': sampleTailored };
+  return { files, active: BASE_FILE, tabs: sortPaths(Object.keys(files)) };
 }
 
 export function loadWorkspace(): Saved {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const saved = JSON.parse(raw) as Saved;
+      const saved = JSON.parse(raw) as Partial<Saved>;
       if (saved.files && Object.keys(saved.files).length) {
-        return { files: saved.files, active: saved.active in saved.files ? saved.active : sortPaths(Object.keys(saved.files))[0] };
+        const paths = sortPaths(Object.keys(saved.files));
+        const active = saved.active && saved.active in saved.files ? saved.active : paths[0];
+        const tabs = (saved.tabs ?? paths).filter((t) => t in saved.files!);
+        return { files: saved.files, active, tabs: tabs.includes(active) ? tabs : [...tabs, active] };
       }
     }
     const draft = localStorage.getItem(OLD_DRAFT_KEY);
-    if (draft) return { files: { [BASE_FILE]: draft }, active: BASE_FILE };
+    if (draft) return { files: { [BASE_FILE]: draft }, active: BASE_FILE, tabs: [BASE_FILE] };
   } catch {
     /* fall through to the sample */
   }
@@ -117,4 +123,10 @@ export function download(filename: string, data: string | Uint8Array, type = 'te
 /** The CLI's output name for a file: `tailored/acme.yml` → `tailored-acme`. */
 export function outputName(path: string): string {
   return path.replace(/\.ya?ml$/i, '').split('/').join('-');
+}
+
+/** The tab to show after closing `closing`: the one to its right, else to its left. */
+export function neighbor(tabs: string[], closing: string): string | undefined {
+  const i = tabs.indexOf(closing);
+  return tabs[i + 1] ?? tabs[i - 1];
 }
