@@ -1,0 +1,8 @@
+basics:
+  name: A
+  label: Engineer
+  summary: Long summary
+layout:
+  sections: [summary, work]
+  titles:
+    work: Experience

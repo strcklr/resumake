@@ -1,0 +1,8 @@
+basics:
+  name: A
+work:
+  - company: One
+    position: Dev
+    highlights: [x, y]
+  - company: Two
+    position: Dev

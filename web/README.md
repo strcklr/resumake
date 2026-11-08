@@ -80,6 +80,7 @@ has errors, the last valid version stays on screen, dimmed.
 | File | |
 |---|---|
 | `src/lib/validate.ts` | Parses YAML (keeping source positions), validates with Ajv, maps each error to a line |
+| `src/lib/workspace.ts` | Several files at once: resolves `extends:`, validates, maps problems to files (not in the page yet) |
 | `src/lib/complete.ts` | Field and section-name suggestions from the schema |
 | `src/lib/editor.ts` | CodeMirror setup: YAML mode, lint, autocomplete |
 | `src/lib/pyrender.ts` | Loads resumake into Pyodide and renders HTML (shared by the worker and tests) |
@@ -89,5 +90,12 @@ has errors, the last valid version stays on screen, dimmed.
 | `src/Splash.svelte` | The landing screen above the editor |
 | `src/GitHubSteps.svelte` | Steps for the private-repo workflow (hidden for now) |
 
-`extends:` isn't resolved in the browser: a file that uses it is checked on its own, with a warning.
-Resolving it across files arrives with GitHub sign-in.
+`extends:` isn't resolved in the page yet: a file that uses it is checked on its own, with a warning.
+The engine for it is `src/lib/workspace.ts` (issue #9), which turns on with GitHub sync (#5). It
+holds several files, merges `extends:` chains with the CLI's rules, validates the merged resume, and
+maps each problem back to the file and line that caused it: a bad value to the file that set it, an
+unknown field to the file that wrote it, a broken or circular `extends:` to its line. It also records
+which file each value came from, for showing inherited fields.
+
+Its merge is a port of `deep_merge` in `src/resumake/loader.py`. Both are tested against the shared
+cases in `tests/fixtures/extends/`, so a change to the merge rules has to be made in both.

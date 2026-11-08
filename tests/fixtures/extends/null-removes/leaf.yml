@@ -1,0 +1,5 @@
+extends: base.yml
+basics:
+  summary: null
+layout:
+  titles: null
