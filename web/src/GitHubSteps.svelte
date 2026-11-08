@@ -1,7 +1,10 @@
 <script lang="ts">
   // The GitHub tab: create a resumes repo from the template, sign in with the resumake GitHub App,
-  // and open the repo's resumes in the editor. Saving back arrives in the next step of #5.
+  // open the repo's resumes in the editor, and save changes back (SaveToGitHub).
   import { onMount } from 'svelte';
+  import SaveToGitHub from './SaveToGitHub.svelte';
+  import type { Source } from './lib/files';
+  import type { Files } from './lib/workspace';
   import {
     config,
     exchangeCode,
@@ -22,9 +25,12 @@
     /** Put a repo's files in the editor. Returns false if the person cancelled. */
     onOpen: (loaded: LoadedRepo) => boolean;
     /** Where the editor's files came from, if a repo. */
-    source: { repo: string; branch: string; commit: string } | null;
+    source: Source | null;
+    files: Files;
+    hasErrors: boolean;
+    onSaved: (next: Source) => void;
   }
-  let { onOpen, source }: Props = $props();
+  let { onOpen, source, files, hasErrors, onSaved }: Props = $props();
 
   const TEMPLATE_REPO = 'https://github.com/strcklr/resumes-template';
   const USE_TEMPLATE = 'https://github.com/new?template_name=resumes-template&template_owner=strcklr';
@@ -149,8 +155,8 @@
       {#if source}
         <p class="gh-source">
           Editing <strong>{source.repo}</strong> on <code>{source.branch}</code> at <code>{source.commit.slice(0, 7)}</code>.
-          Saving back to GitHub is coming next; until then, use <strong>Download all</strong>.
         </p>
+        <SaveToGitHub token={session.token} {source} {files} {hasErrors} {onSaved} />
       {/if}
     </div>
   {/if}
@@ -188,11 +194,11 @@
         </button>
       {/if}
     </li>
-    <li class="soon-step">
-      <h3>Save changes <span class="soon">Coming soon</span></h3>
+    <li>
+      <h3>Save changes</h3>
       <p>
-        Commit your edits to a branch or open a pull request, and your repo's workflow builds the PDF. Until then, use
-        <strong>Download all</strong> and upload the files to the repo's <code>resumes/</code> folder.
+        Once you've opened your repo's resumes, <strong>Save to GitHub</strong> commits your edits to a new branch with
+        a pull request, or to an existing branch. Your repo's workflow then builds the PDF and Word file.
       </p>
     </li>
   </ol>

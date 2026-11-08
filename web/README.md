@@ -24,8 +24,21 @@ npm run build      # static site in web/dist/
 
 ## GitHub sign-in
 
-The **GitHub** tab signs in with the resumake GitHub App and opens a repo's `resumes/` folder in the
-editor (saving back is the next step of #5). It needs three build settings, which CI takes from the
+The **GitHub** tab signs in with the resumake GitHub App, opens a repo's `resumes/` folder in the
+editor, and saves changes back:
+
+- **Save to GitHub** (in the header whenever there are unsaved changes, and in the GitHub tab) commits
+  every added, edited and deleted file in one commit: to a new branch with a pull request (the
+  default), or to an existing branch, the default branch included. After a first save to a branch,
+  later saves go to it too.
+- Before adding to an existing branch, it checks whether any of the changed files changed on GitHub
+  since they were opened; if so it saves nothing and says which, so nobody's work is overwritten. A
+  protected branch that refuses the commit gets an offer to use a new branch.
+- After saving it links to the commit and pull request and follows the repo's build workflow until
+  it finishes (with the app's optional Actions: Read-only permission; otherwise it links to the
+  Actions tab).
+
+Sign-in needs three build settings, which CI takes from the
 repo's Actions variables; without them the tab says sign-in isn't set up:
 
 | Build variable | Actions variable | |

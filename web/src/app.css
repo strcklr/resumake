@@ -221,6 +221,8 @@ button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
 }
 .count.has-errors { background: var(--bad); color: var(--surface); }
 
+.save-count { background: var(--accent-text); color: var(--accent); margin-left: 0.3rem; }
+
 .tab-body { flex: 1; min-height: 0; overflow: auto; padding: 0.9rem 1rem; }
 .tab-body.flush { padding: 0; overflow: hidden; }
 .tab-body[hidden] { display: none; }

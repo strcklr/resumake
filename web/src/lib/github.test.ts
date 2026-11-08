@@ -102,6 +102,7 @@ describe('reading a repo', () => {
     const loaded = await gh.loadResumes({ fullName: 'jo/resumes', private: true, defaultBranch: 'main' });
     expect(loaded).toEqual({
       repo: 'jo/resumes',
+      defaultBranch: 'main',
       branch: 'main',
       commit: 'c0ffee',
       folder: 'resumes',
@@ -116,5 +117,131 @@ describe('reading a repo', () => {
 
   it('decodes UTF-8 from base64 with line breaks', () => {
     expect(decodeBlob(b64('naïve ✓').replace(/(.{4})/g, '$1\n'), 'base64')).toBe('naïve ✓');
+  });
+});
+
+describe('saving', () => {
+  type Call = { method: string; path: string; body?: Record<string, unknown> };
+
+  /** A fake GitHub: `routes` maps "METHOD path" to a response body, or [status, body]. */
+  function fakeGitHub(routes: Record<string, unknown>) {
+    const calls: Call[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      const path = String(url).replace('https://api.github.com', '');
+      calls.push({ method, path, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      const route = routes[`${method} ${path}`];
+      if (route === undefined) return json({ message: `no route for ${method} ${path}` }, 404);
+      const [status, body] = Array.isArray(route) ? route : [200, route];
+      return status === 204 ? new Response(null, { status }) : json(body, status as number);
+    });
+    return { gh: new GitHub('ghu_1', fetchImpl as typeof fetch), calls };
+  }
+
+  const changes = [
+    { path: 'resumes/tailored/acme.yml', content: 'extends: ../default.yml\n' },
+    { path: 'resumes/old.yml', content: null },
+  ];
+  const base = {
+    'GET /repos/jo/resumes/git/commits/base1': { tree: { sha: 'treeBase' } },
+    'POST /repos/jo/resumes/git/trees': { sha: 'treeNew' },
+    'POST /repos/jo/resumes/git/commits': { sha: 'commitNew', html_url: 'https://github.com/jo/resumes/commit/commitNew' },
+  };
+
+  it('commits only the changes to a new branch started from the opened commit', async () => {
+    const { gh, calls } = fakeGitHub({ ...base, 'POST /repos/jo/resumes/git/refs': { ref: 'refs/heads/resumake/x' } });
+    const result = await gh.commitChanges({ repo: 'jo/resumes', branch: 'resumake/x', newBranch: true, baseCommit: 'base1', changes, message: 'Update' });
+    expect(result).toEqual({ commit: 'commitNew', url: 'https://github.com/jo/resumes/commit/commitNew' });
+    const tree = calls.find((c) => c.path === '/repos/jo/resumes/git/trees')!.body!;
+    expect(tree).toEqual({
+      base_tree: 'treeBase',
+      tree: [
+        { path: 'resumes/tailored/acme.yml', mode: '100644', type: 'blob', content: 'extends: ../default.yml\n' },
+        { path: 'resumes/old.yml', mode: '100644', type: 'blob', sha: null },
+      ],
+    });
+    expect(calls.find((c) => c.path === '/repos/jo/resumes/git/commits')!.body).toEqual({ message: 'Update', tree: 'treeNew', parents: ['base1'] });
+    expect(calls.at(-1)).toEqual({ method: 'POST', path: '/repos/jo/resumes/git/refs', body: { ref: 'refs/heads/resumake/x', sha: 'commitNew' } });
+  });
+
+  it('adds to an existing branch on top of its head when nobody touched the same files', async () => {
+    const { gh, calls } = fakeGitHub({
+      ...base,
+      'GET /repos/jo/resumes/git/ref/heads/main': { object: { sha: 'head2' } },
+      'GET /repos/jo/resumes/git/commits/head2': { tree: { sha: 'treeHead' } },
+      'GET /repos/jo/resumes/git/trees/treeHead?recursive=1': { tree: [
+        { path: 'resumes/tailored/acme.yml', type: 'blob', sha: 'a1' }, { path: 'resumes/old.yml', type: 'blob', sha: 'o1' }, { path: 'README.md', type: 'blob', sha: 'r2' } ] },
+      'GET /repos/jo/resumes/git/trees/treeBase?recursive=1': { tree: [
+        { path: 'resumes/tailored/acme.yml', type: 'blob', sha: 'a1' }, { path: 'resumes/old.yml', type: 'blob', sha: 'o1' }, { path: 'README.md', type: 'blob', sha: 'r1' } ] },
+      'PATCH /repos/jo/resumes/git/refs/heads/main': { object: { sha: 'commitNew' } },
+    });
+    await gh.commitChanges({ repo: 'jo/resumes', branch: 'main', newBranch: false, baseCommit: 'base1', changes, message: 'Update' });
+    expect(calls.find((c) => c.path === '/repos/jo/resumes/git/commits')!.body!.parents).toEqual(['head2']);
+    expect(calls.at(-1)).toEqual({ method: 'PATCH', path: '/repos/jo/resumes/git/refs/heads/main', body: { sha: 'commitNew', force: false } });
+  });
+
+  it('refuses to overwrite a file someone changed on GitHub since it was opened', async () => {
+    const { gh, calls } = fakeGitHub({
+      ...base,
+      'GET /repos/jo/resumes/git/ref/heads/main': { object: { sha: 'head2' } },
+      'GET /repos/jo/resumes/git/commits/head2': { tree: { sha: 'treeHead' } },
+      'GET /repos/jo/resumes/git/trees/treeHead?recursive=1': { tree: [{ path: 'resumes/tailored/acme.yml', type: 'blob', sha: 'a2' }] },
+      'GET /repos/jo/resumes/git/trees/treeBase?recursive=1': { tree: [{ path: 'resumes/tailored/acme.yml', type: 'blob', sha: 'a1' }] },
+    });
+    await expect(
+      gh.commitChanges({ repo: 'jo/resumes', branch: 'main', newBranch: false, baseCommit: 'base1', changes: changes.slice(0, 1), message: 'x' }),
+    ).rejects.toThrow(/resumes\/tailored\/acme.yml changed on main since you opened it/);
+    expect(calls.some((c) => c.method !== 'GET')).toBe(false);
+  });
+
+  it('reports a protected branch', async () => {
+    const { gh } = fakeGitHub({
+      ...base,
+      'GET /repos/jo/resumes/git/ref/heads/main': { object: { sha: 'base1' } },
+      'PATCH /repos/jo/resumes/git/refs/heads/main': [422, { message: 'Protected branch update failed for refs/heads/main.' }],
+    });
+    await expect(
+      gh.commitChanges({ repo: 'jo/resumes', branch: 'main', newBranch: false, baseCommit: 'base1', changes, message: 'x' }),
+    ).rejects.toMatchObject({ status: 422, message: expect.stringMatching(/Protected branch/) });
+  });
+
+  it('opens a pull request', async () => {
+    const { gh, calls } = fakeGitHub({ 'POST /repos/jo/resumes/pulls': { number: 5, html_url: 'https://github.com/jo/resumes/pull/5' } });
+    expect(await gh.openPullRequest('jo/resumes', { head: 'resumake/x', base: 'main', title: 'T', body: 'B' })).toEqual({
+      number: 5, url: 'https://github.com/jo/resumes/pull/5',
+    });
+    expect(calls[0].body).toEqual({ head: 'resumake/x', base: 'main', title: 'T', body: 'B' });
+  });
+
+  it('reads workflow runs, or returns null without the Actions permission', async () => {
+    const ok = fakeGitHub({ 'GET /repos/jo/resumes/actions/runs?head_sha=c1&per_page=10': { workflow_runs: [
+      { name: 'Build resumes', status: 'completed', conclusion: 'success', html_url: 'https://x/run/1' } ] } });
+    expect(await ok.gh.workflowRuns('jo/resumes', 'c1')).toEqual([{ name: 'Build resumes', status: 'completed', conclusion: 'success', url: 'https://x/run/1' }]);
+    const denied = fakeGitHub({ 'GET /repos/jo/resumes/actions/runs?head_sha=c1&per_page=10': [403, { message: 'Resource not accessible by integration' }] });
+    expect(await denied.gh.workflowRuns('jo/resumes', 'c1')).toBeNull();
+  });
+});
+
+describe('working out what to save', () => {
+  it('finds added, edited and deleted files and maps them into the repo folder', async () => {
+    const { diffFiles, toChanges } = await import('./github');
+    const base = { 'default.yml': 'a', 'tailored/old.yml': 'o', 'same.yml': 's' };
+    const now = { 'default.yml': 'A', 'tailored/new.yml': 'n', 'same.yml': 's' };
+    const diff = diffFiles(base, now);
+    expect(diff).toEqual({ added: ['tailored/new.yml'], modified: ['default.yml'], deleted: ['tailored/old.yml'] });
+    expect(toChanges(diff, now, 'resumes')).toEqual([
+      { path: 'resumes/tailored/new.yml', content: 'n' },
+      { path: 'resumes/default.yml', content: 'A' },
+      { path: 'resumes/tailored/old.yml', content: null },
+    ]);
+  });
+
+  it('checks branch names and suggests one', async () => {
+    const { invalidBranch, suggestBranch } = await import('./github');
+    expect(invalidBranch('resumake/acme-update')).toBeNull();
+    expect(invalidBranch('has space')).toMatch(/letters/);
+    expect(invalidBranch('a..b')).toMatch(/valid/);
+    expect(invalidBranch('x.lock')).toMatch(/valid/);
+    expect(suggestBranch(new Date(2026, 10, 8, 14, 5))).toBe('resumake/2026-11-08-1405');
   });
 });
