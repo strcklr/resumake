@@ -139,8 +139,8 @@
         </p>
       {:else}
         <p>
-          Sign in with GitHub. Your sign-in lasts until you close this tab, at most 8 hours, and only reaches the repos
-          you give the resumake app access to.
+          Your sign-in lasts until you close this tab, at most 8 hours, and only reaches the repos you give the
+          resumake app access to.
         </p>
         <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg))}>
           Sign in with GitHub
@@ -151,9 +151,9 @@
     <li class:done={linked}>
       <h3>Create your resumes repo {#if linked}<span class="done-tag" aria-label="done">✓</span>{/if}</h3>
       <p>
-        {#if linked}Done, or skip it: you already have one.{:else}Already have one? Skip to step 3.{/if}
-        Otherwise, make a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>:
-        a sample resume, a tailored example and the build workflow.
+        {#if linked}You have one. To start another,{:else}Already have one? Skip to step 3. Otherwise,{/if}
+        make a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>: a
+        sample resume, a tailored example and the build workflow.
       </p>
       <a class="button-link" class:secondary={linked} href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer">
         Create my resumes repo <span aria-hidden="true">↗</span>
