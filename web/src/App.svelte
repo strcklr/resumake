@@ -258,9 +258,8 @@
       return;
     }
     if (!confirm(`Replace all your files with the ${names.length} resume file${names.length === 1 ? '' : 's'} in that folder?`)) return;
-    // Open just the base file; the rest are a click away in the Files list.
-    const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
-    replaceAll(picked, first, [first]);
+    // Every file opens as a tab, base file first, so it's clear what was loaded.
+    replaceAll(picked, names.includes(BASE_FILE) ? BASE_FILE : names[0], names);
   }
 
   /** Put a GitHub repo's resumes in the editor, replacing what's here (after asking). */
@@ -271,8 +270,8 @@
         '\n\nDownload all first if you want to keep what is here.',
     );
     if (!ok) return false;
-    const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
-    replaceAll(loaded.files, first, [first], {
+    // Every file opens as a tab, base file first, so it's clear what was loaded.
+    replaceAll(loaded.files, names.includes(BASE_FILE) ? BASE_FILE : names[0], names, {
       repo: loaded.repo,
       defaultBranch: loaded.defaultBranch,
       branch: loaded.branch,

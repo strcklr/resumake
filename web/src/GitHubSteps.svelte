@@ -179,8 +179,8 @@
           <p class="fine warn-text">This repo is public: anyone can read the resumes in it.</p>
         {/if}
         <p class="fine">
-          Opens every <code>.yml</code> file in the repo's <code>resumes/</code> folder, replacing the files in this
-          browser. Not listed? <a href={installUrl(cfg!)}>Link another repo</a>.
+          Opens every <code>.yml</code> file in the repo's <code>resumes/</code> folder, subfolders included, as a tab,
+          replacing the files in this browser. Not listed? <a href={installUrl(cfg!)}>Link another repo</a>.
         </p>
         {#if source}
           <p class="gh-source">

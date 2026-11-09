@@ -137,7 +137,8 @@ together, as they do with the CLI:
   middle-click) closes a tab but keeps the file, so variants that extend it still resolve; reopen it
   from the **Files** list, which shows every file. Opening a problem or inherited field in a closed
   file reopens its tab. **Open folder** loads
-  a whole `resumes/` folder; **Download all** saves every file as a `.zip` with its folders. Files are
+  a whole `resumes/` folder and opens every file as a tab (as does opening a GitHub repo);
+  **Download all** saves every file as a `.zip` with its folders. Files are
   kept in this browser (`localStorage`) until GitHub sync (#5) replaces that.
 - **Checking:** each file is checked with its `extends:` chain resolved. Problems are listed for every
   file in the chain and point to where the fix goes: a bad value to the file that set it, an unknown
