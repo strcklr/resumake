@@ -36,7 +36,9 @@ GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App*
 - **Request user authorization (OAuth) during installation:** on (installing then also signs you in)
 - **Webhook:** off (uncheck **Active**)
 - **Repository permissions:** **Contents: Read and write**, **Pull requests: Read and write**
-  (Metadata: Read-only is added automatically). Nothing else.
+  (Metadata: Read-only is added automatically), and optionally **Actions: Read-only**, which lets
+  the editor show the build's status after a save (without it, it links to the Actions tab).
+  Nothing else.
 - **Where can this GitHub App be installed?** Any account, so others can use the editor.
 
 Then note the **Client ID** and **Generate a new client secret**.

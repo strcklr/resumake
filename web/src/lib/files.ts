@@ -22,11 +22,15 @@ export interface Saved {
 
 export interface Source {
   repo: string;
+  /** The repo's default branch, where pull requests go. */
+  defaultBranch: string;
   branch: string;
   /** The commit the files were read from. */
   commit: string;
   /** The repo folder the workspace's paths are relative to. */
   folder: string;
+  /** The files as they are at `commit`, to work out what changed. Missing for files opened before saving existed. */
+  base?: Files;
 }
 
 const KEY = 'resumake:workspace';

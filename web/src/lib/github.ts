@@ -145,8 +145,10 @@ export interface Repo {
 
 export interface LoadedRepo {
   repo: string;
+  /** The repo's default branch, where pull requests go. */
+  defaultBranch: string;
   branch: string;
-  /** The commit the files were read from (saving in #5 starts from it). */
+  /** The commit the files were read from; saving starts from it. */
   commit: string;
   /** The folder the files came from, e.g. `resumes`; workspace paths are relative to it. */
   folder: string;
@@ -199,24 +201,175 @@ export class GitHub {
         files[entry.path.slice(prefix.length)] = decodeBlob(blob.content, blob.encoding);
       }),
     );
-    return { repo: repo.fullName, branch, commit: head.commit.sha, folder: RESUMES_FOLDER, files };
+    return { repo: repo.fullName, defaultBranch: repo.defaultBranch, branch, commit: head.commit.sha, folder: RESUMES_FOLDER, files };
   }
 
-  private async get<T>(path: string): Promise<T> {
+  /** Branch names in a repo (the first 100). */
+  async branches(repo: string): Promise<string[]> {
+    const list = await this.get<{ name: string }[]>(`/repos/${repo}/branches?per_page=100`);
+    return list.map((b) => b.name);
+  }
+
+  /**
+   * Commit `changes` (repo paths; null content deletes) in one commit and move `branch` to it.
+   *
+   * - A new branch starts from `baseCommit`, the commit the files were opened from.
+   * - An existing branch gets the commit on top of its current head. If any changed file was also
+   *   changed on GitHub since `baseCommit`, nothing is saved (`SaveConflict`), so nobody's work is
+   *   overwritten. A rejected update (e.g. a protected branch) raises `GitHubError`.
+   */
+  async commitChanges(opts: {
+    repo: string;
+    branch: string;
+    newBranch: boolean;
+    baseCommit: string;
+    changes: Change[];
+    message: string;
+  }): Promise<{ commit: string; url: string }> {
+    const { repo, branch, newBranch, baseCommit, changes, message } = opts;
+    if (!changes.length) throw new GitHubError('There are no changes to save.', 400);
+    const ref = `heads/${branch}`;
+    const parent = newBranch ? baseCommit : (await this.get<{ object: { sha: string } }>(`/repos/${repo}/git/ref/${encodeRef(ref)}`)).object.sha;
+
+    const parentTree = (await this.get<{ tree: { sha: string } }>(`/repos/${repo}/git/commits/${parent}`)).tree.sha;
+    if (parent !== baseCommit) {
+      const baseTree = (await this.get<{ tree: { sha: string } }>(`/repos/${repo}/git/commits/${baseCommit}`)).tree.sha;
+      const [now, then] = await Promise.all([this.blobShas(repo, parentTree), this.blobShas(repo, baseTree)]);
+      const conflicts = changes.map((c) => c.path).filter((path) => now.get(path) !== then.get(path));
+      if (conflicts.length) throw new SaveConflict(branch, conflicts);
+    }
+
+    const tree = await this.send<{ sha: string }>('POST', `/repos/${repo}/git/trees`, {
+      base_tree: parentTree,
+      tree: changes.map((c) =>
+        c.content === null
+          ? { path: c.path, mode: '100644', type: 'blob', sha: null }
+          : { path: c.path, mode: '100644', type: 'blob', content: c.content },
+      ),
+    });
+    const commit = await this.send<{ sha: string; html_url: string }>('POST', `/repos/${repo}/git/commits`, {
+      message,
+      tree: tree.sha,
+      parents: [parent],
+    });
+    if (newBranch) await this.send('POST', `/repos/${repo}/git/refs`, { ref: `refs/${ref}`, sha: commit.sha });
+    else await this.send('PATCH', `/repos/${repo}/git/refs/${encodeRef(ref)}`, { sha: commit.sha, force: false });
+    return { commit: commit.sha, url: commit.html_url };
+  }
+
+  async openPullRequest(repo: string, opts: { head: string; base: string; title: string; body: string }): Promise<{ number: number; url: string }> {
+    const pr = await this.send<{ number: number; html_url: string }>('POST', `/repos/${repo}/pulls`, opts);
+    return { number: pr.number, url: pr.html_url };
+  }
+
+  /**
+   * The workflow runs for a commit (needs the app's Actions: read permission). Returns null when the
+   * app can't see Actions, so the page can link to the Actions tab instead.
+   */
+  async workflowRuns(repo: string, sha: string): Promise<WorkflowRun[] | null> {
+    try {
+      const data = await this.get<{ workflow_runs: { name: string; status: string; conclusion: string | null; html_url: string }[] }>(
+        `/repos/${repo}/actions/runs?head_sha=${sha}&per_page=10`,
+      );
+      return data.workflow_runs.map((r) => ({ name: r.name, status: r.status, conclusion: r.conclusion, url: r.html_url }));
+    } catch (e) {
+      if (e instanceof GitHubError && (e.status === 403 || e.status === 404)) return null;
+      throw e;
+    }
+  }
+
+  private async blobShas(repo: string, treeSha: string): Promise<Map<string, string>> {
+    const tree = await this.get<{ tree: { path: string; type: string; sha: string }[] }>(`/repos/${repo}/git/trees/${treeSha}?recursive=1`);
+    return new Map(tree.tree.filter((e) => e.type === 'blob').map((e) => [e.path, e.sha]));
+  }
+
+  private get<T>(path: string): Promise<T> {
+    return this.send<T>('GET', path);
+  }
+
+  private async send<T>(method: string, path: string, body?: unknown): Promise<T> {
     const res = await this.fetchImpl(`${API}${path}`, {
+      method,
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${this.token}`,
         'X-GitHub-Api-Version': '2022-11-28',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { message?: string };
       const reason = res.status === 401 ? 'Your GitHub sign-in has expired. Sign in again.' : data.message ?? `GitHub returned ${res.status}.`;
       throw new GitHubError(reason, res.status);
     }
-    return res.json() as Promise<T>;
+    return (res.status === 204 ? undefined : res.json()) as Promise<T>;
   }
+}
+
+/** A file to write (or, with null content, delete), by its path in the repo. */
+export interface Change {
+  path: string;
+  content: string | null;
+}
+
+export interface WorkflowRun {
+  name: string;
+  /** queued, in_progress, completed, ... */
+  status: string;
+  /** success, failure, cancelled, ... once completed */
+  conclusion: string | null;
+  url: string;
+}
+
+/** Files changed on GitHub since they were opened: saving would overwrite someone else's work. */
+export class SaveConflict extends Error {
+  constructor(readonly branch: string, readonly paths: string[]) {
+    super(`${paths.join(', ')} changed on ${branch} since you opened ${paths.length === 1 ? 'it' : 'them'}.`);
+  }
+}
+
+export interface FileChanges {
+  added: string[];
+  modified: string[];
+  deleted: string[];
+}
+
+/** What differs between the files as opened (`base`) and now. Paths are workspace paths. */
+export function diffFiles(base: Files, current: Files): FileChanges {
+  const added = Object.keys(current).filter((p) => !(p in base)).sort();
+  const modified = Object.keys(current).filter((p) => p in base && base[p] !== current[p]).sort();
+  const deleted = Object.keys(base).filter((p) => !(p in current)).sort();
+  return { added, modified, deleted };
+}
+
+/** The commit's changes, as repo paths under `folder`. */
+export function toChanges(diff: FileChanges, current: Files, folder: string): Change[] {
+  const at = (p: string) => (folder ? `${folder}/${p}` : p);
+  return [
+    ...[...diff.added, ...diff.modified].map((p) => ({ path: at(p), content: current[p] })),
+    ...diff.deleted.map((p) => ({ path: at(p), content: null })),
+  ];
+}
+
+/** Why a branch name can't be used, or null. Mirrors the parts of git's rules people hit. */
+export function invalidBranch(name: string): string | null {
+  if (!name.trim()) return 'Enter a branch name.';
+  if (!/^[A-Za-z0-9._\/-]+$/.test(name)) return 'Use letters, numbers, and . _ / - only.';
+  if (name.startsWith('/') || name.endsWith('/') || name.endsWith('.') || name.endsWith('.lock') || name.includes('..') || name.includes('//')) {
+    return "That isn't a valid branch name.";
+  }
+  return null;
+}
+
+/** A suggested new branch name, e.g. resumake/2026-11-08-1432. */
+export function suggestBranch(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `resumake/${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+}
+
+function encodeRef(ref: string): string {
+  return ref.split('/').map(encodeURIComponent).join('/');
 }
 
 export function decodeBlob(content: string, encoding: string): string {

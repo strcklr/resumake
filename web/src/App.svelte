@@ -22,7 +22,7 @@
     zipFiles,
     type Source,
   } from './lib/files';
-  import type { LoadedRepo } from './lib/github';
+  import { diffFiles, type LoadedRepo } from './lib/github';
   import { PreviewClient } from './lib/preview';
   import { formatPath } from './lib/validate';
   import {
@@ -75,6 +75,12 @@
   const filesWithErrors = $derived(new Set(problems.filter((p) => p.severity === 'error').map((p) => p.file)));
   const inherited: Inherited[] = $derived(resolved?.origin ? inheritedFields(resolved.origin, active) : []);
   const partial = $derived(isPartial(active));
+  /** Unsaved changes since the files were opened from GitHub (0 when they didn't come from GitHub). */
+  const unsaved = $derived.by(() => {
+    if (!source?.base) return 0;
+    const d = diffFiles(source.base, files);
+    return d.added.length + d.modified.length + d.deleted.length;
+  });
   // The extends: links between files, from every file in the workspace (open in a tab or not).
   const graph = $derived(new Workspace($state.snapshot(files)));
   const children = $derived(graph.childrenMap());
@@ -266,7 +272,14 @@
     );
     if (!ok) return false;
     const first = names.includes(BASE_FILE) ? BASE_FILE : names[0];
-    replaceAll(loaded.files, first, [first], { repo: loaded.repo, branch: loaded.branch, commit: loaded.commit, folder: loaded.folder });
+    replaceAll(loaded.files, first, [first], {
+      repo: loaded.repo,
+      defaultBranch: loaded.defaultBranch,
+      branch: loaded.branch,
+      commit: loaded.commit,
+      folder: loaded.folder,
+      base: { ...loaded.files },
+    });
     tab = 'preview';
     return true;
   }
@@ -313,9 +326,16 @@
     <button type="button" onclick={() => folderInput.click()}>Open folder</button>
     <input bind:this={filesInput} type="file" accept=".yml,.yaml,text/yaml" multiple hidden onchange={openFiles} />
     <input bind:this={folderInput} type="file" webkitdirectory hidden onchange={openFolder} />
-    <button type="button" class="primary" onclick={downloadAll} title="Every file, in its folder, as one .zip">
-      Download all
-    </button>
+    {#if unsaved}
+      <button type="button" class="primary" onclick={() => (tab = 'github')} title={`Save your changes to ${source?.repo}`}>
+        Save to GitHub <span class="count save-count">{unsaved}</span>
+      </button>
+      <button type="button" onclick={downloadAll} title="Every file, in its folder, as one .zip">Download all</button>
+    {:else}
+      <button type="button" class="primary" onclick={downloadAll} title="Every file, in its folder, as one .zip">
+        Download all
+      </button>
+    {/if}
   </div>
 </header>
 
@@ -484,7 +504,16 @@
 
     {#if GITHUB_ENABLED}
       <div class="tab-body" role="tabpanel" hidden={tab !== 'github'}>
-        <GitHubSteps onOpen={openFromGitHub} {source} />
+        <GitHubSteps
+          onOpen={openFromGitHub}
+          {source}
+          {files}
+          hasErrors={errors > 0}
+          onSaved={(next) => {
+            source = next;
+            persist();
+          }}
+        />
       </div>
     {/if}
   </section>

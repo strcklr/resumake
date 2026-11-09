@@ -1,7 +1,10 @@
 <script lang="ts">
   // The GitHub tab: create a resumes repo from the template, sign in with the resumake GitHub App,
-  // and open the repo's resumes in the editor. Saving back arrives in the next step of #5.
+  // open the repo's resumes in the editor, and save changes back (SaveToGitHub).
   import { onMount } from 'svelte';
+  import SaveToGitHub from './SaveToGitHub.svelte';
+  import type { Source } from './lib/files';
+  import type { Files } from './lib/workspace';
   import {
     config,
     exchangeCode,
@@ -22,20 +25,26 @@
     /** Put a repo's files in the editor. Returns false if the person cancelled. */
     onOpen: (loaded: LoadedRepo) => boolean;
     /** Where the editor's files came from, if a repo. */
-    source: { repo: string; branch: string; commit: string } | null;
+    source: Source | null;
+    files: Files;
+    hasErrors: boolean;
+    onSaved: (next: Source) => void;
   }
-  let { onOpen, source }: Props = $props();
+  let { onOpen, source, files, hasErrors, onSaved }: Props = $props();
 
   const TEMPLATE_REPO = 'https://github.com/strcklr/resumes-template';
   const USE_TEMPLATE = 'https://github.com/new?template_name=resumes-template&template_owner=strcklr';
   const cfg = config();
 
   let session: Session | null = $state(cfg ? loadSession() : null);
-  let login: string | null = $state(null);
-  let repos: Repo[] | null = $state(null);
+  let login = $state<string | null>(null);
+  let repos = $state<Repo[] | null>(null);
   let selected = $state('');
   let busy: string | null = $state(null);
   let error: string | null = $state(null);
+  const signedIn = $derived(!!session && !!login);
+  /** The app can see at least one repo: a resumes repo exists and is linked. */
+  const linked = $derived(signedIn && !!repos?.length);
 
   onMount(() => {
     if (!cfg) return;
@@ -116,14 +125,45 @@
   </p>
 
   {#if error}<p class="gh-error" role="alert">{error}</p>{/if}
+  {#if busy}<p class="gh-busy" aria-live="polite"><span class="spinner" aria-hidden="true"></span>{busy}</p>{/if}
 
-  {#if session && login}
-    <div class="gh-account">
-      <p class="gh-signed-in">
-        Signed in as <strong>@{login}</strong>
-        <button type="button" class="link" onclick={doSignOut}>Sign out</button>
+  <ol class="steps">
+    <li class:done={signedIn}>
+      <h3>Connect your GitHub account {#if signedIn}<span class="done-tag" aria-label="done">✓</span>{/if}</h3>
+      {#if !cfg}
+        <p>Sign-in isn't set up on this copy of the editor.</p>
+      {:else if signedIn}
+        <p class="gh-signed-in">
+          Signed in as <strong>@{login}</strong>
+          <button type="button" class="link" onclick={doSignOut}>Sign out</button>
+        </p>
+      {:else}
+        <p>
+          Your sign-in lasts until you close this tab, at most 8 hours, and only reaches the repos you give the
+          resumake app access to.
+        </p>
+        <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg))}>
+          Sign in with GitHub
+        </button>
+      {/if}
+    </li>
+
+    <li class:done={linked}>
+      <h3>Create your resumes repo {#if linked}<span class="done-tag" aria-label="done">✓</span>{/if}</h3>
+      <p>
+        {#if linked}You have one. To start another,{:else}Already have one? Skip to step 3. Otherwise,{/if}
+        make a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>: a
+        sample resume, a tailored example and the build workflow.
       </p>
-      {#if repos && repos.length}
+      <a class="button-link" class:secondary={linked} href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer">
+        Create my resumes repo <span aria-hidden="true">↗</span>
+      </a>
+      <p class="fine">Choose <strong>Private</strong> on GitHub's page: new repos are public by default.</p>
+    </li>
+
+    <li class:done={!!source}>
+      <h3>Link it {#if source}<span class="done-tag" aria-label="done">✓</span>{/if}</h3>
+      {#if signedIn && repos && repos.length}
         <div class="gh-open">
           <label>
             <span>Repo</span>
@@ -140,60 +180,34 @@
         {/if}
         <p class="fine">
           Opens every <code>.yml</code> file in the repo's <code>resumes/</code> folder, replacing the files in this
-          browser. Missing a repo? <a href={installUrl(cfg!)} target="_blank" rel="noopener noreferrer">Give the app access to it</a>.
+          browser. Not listed? <a href={installUrl(cfg!)}>Link another repo</a>.
         </p>
-      {:else if repos}
-        <p>The resumake app can't see any of your repos yet.</p>
-        <a class="button-link" href={installUrl(cfg!)}>Give it access to your resumes repo <span aria-hidden="true">↗</span></a>
-      {/if}
-      {#if source}
-        <p class="gh-source">
-          Editing <strong>{source.repo}</strong> on <code>{source.branch}</code> at <code>{source.commit.slice(0, 7)}</code>.
-          Saving back to GitHub is coming next; until then, use <strong>Download all</strong>.
-        </p>
-      {/if}
-    </div>
-  {/if}
-  {#if busy}<p class="gh-busy" aria-live="polite"><span class="spinner" aria-hidden="true"></span>{busy}</p>{/if}
-
-  <ol class="steps">
-    <li>
-      <h3>Create your resumes repo</h3>
-      <p>
-        Makes a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>: a
-        sample resume, a tailored example and the build workflow.
-      </p>
-      <a class="button-link" href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer">
-        Create my resumes repo <span aria-hidden="true">↗</span>
-      </a>
-      <p class="fine">
-        On GitHub's page, name it (for example <code>resumes</code>) and choose <strong>Private</strong>: new repos
-        are public by default.
-      </p>
-    </li>
-    <li>
-      <h3>Connect GitHub</h3>
-      {#if !cfg}
-        <p>Sign-in isn't set up on this copy of the editor.</p>
-      {:else if session && login}
-        <p>Done. Pick your repo above and open its resumes.</p>
+        {#if source}
+          <p class="gh-source">
+            Editing <strong>{source.repo}</strong> on <code>{source.branch}</code> at <code>{source.commit.slice(0, 7)}</code>.
+          </p>
+        {/if}
       {:else}
         <p>
-          Sign in, then give the resumake GitHub App access to <em>only</em> your resumes repo. It can read and write
-          that repo's files and pull requests, and nothing else. Your sign-in lasts until you close this tab, at most
-          8 hours.
+          Give the resumake app access to <em>only</em> your resumes repo, so the editor can open it and save to it. The
+          app can read and write that repo's files and pull requests, and nothing else.
         </p>
-        <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg))}>
-          Sign in with GitHub
-        </button>
+        {#if cfg}
+          <a class="button-link" href={installUrl(cfg)}>Link my resumes repo</a>
+        {/if}
       {/if}
     </li>
-    <li class="soon-step">
-      <h3>Save changes <span class="soon">Coming soon</span></h3>
-      <p>
-        Commit your edits to a branch or open a pull request, and your repo's workflow builds the PDF. Until then, use
-        <strong>Download all</strong> and upload the files to the repo's <code>resumes/</code> folder.
-      </p>
+
+    <li>
+      <h3>Save changes</h3>
+      {#if signedIn && source && session}
+        <SaveToGitHub token={session.token} {source} {files} {hasErrors} {onSaved} />
+      {:else}
+        <p>
+          Once your repo's resumes are open here, <strong>Save to GitHub</strong> commits your edits to a new branch with
+          a pull request, or to an existing branch, and your repo's workflow builds the PDF and Word file.
+        </p>
+      {/if}
     </li>
   </ol>
 </section>

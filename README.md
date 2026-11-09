@@ -165,7 +165,7 @@ To add a format, write a `render(ctx, out_path)` function and register it in
 against the same schema as `resumake validate` with errors on the exact line, and a live preview
 rendered by resumake's own Python and template running in the browser (Pyodide). It handles tailored
 variants too: open a `resumes/` folder and `extends:` is resolved across files. With GitHub sign-in
-it opens your resumes repo directly; saving back is next. See [`web/README.md`](web/README.md).
+it opens your resumes repo directly and saves changes back as a branch and pull request. See [`web/README.md`](web/README.md).
 
 ```bash
 cd web && npm install && npm run dev
