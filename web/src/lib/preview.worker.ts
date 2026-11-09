@@ -68,9 +68,19 @@ async function boot(base: string): Promise<Render> {
 
 let ready: Promise<Render> | undefined;
 
-// Only the newest request matters: while one renders, later ones replace each other.
+// Only the newest request of each kind matters: while one renders, later ones replace each other.
+// The preview goes first; the gallery (several renders) waits behind it.
 let pending: Extract<ToWorker, { type: 'render' }> | null = null;
+let pendingGallery: Extract<ToWorker, { type: 'gallery' }> | null = null;
 let busy = false;
+
+const fonts = (theme: string, file: string) => loadFont(theme, file).catch(() => '');
+
+/** The same resume with another theme (keeping the rest of its layout, accent included). */
+function withTheme(data: unknown, theme: string): unknown {
+  const resume = data as { layout?: object };
+  return { ...resume, layout: { ...resume.layout, theme } };
+}
 
 self.onmessage = async (event: MessageEvent<ToWorker>) => {
   const msg = event.data;
@@ -80,19 +90,38 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
     ready.catch((err) => send({ type: 'failed', error: pythonError(err) }));
     return;
   }
-  pending = msg;
+  if (msg.type === 'gallery') pendingGallery = msg;
+  else pending = msg;
   if (busy || !ready) return;
   busy = true;
   try {
     const render = await ready;
-    while (pending) {
-      const { id, data } = pending;
-      pending = null;
-      try {
-        send({ type: 'rendered', id, html: await inlineFonts(render(data), (theme, file) => loadFont(theme, file).catch(() => '')) });
-      } catch (err) {
-        send({ type: 'error', id, error: pythonError(err) });
+    while (pending || pendingGallery) {
+      if (pending) {
+        const { id, data } = pending;
+        pending = null;
+        try {
+          send({ type: 'rendered', id, html: await inlineFonts(render(data), fonts) });
+        } catch (err) {
+          send({ type: 'error', id, error: pythonError(err) });
+        }
+        continue;
       }
+      const { id, data, themes } = pendingGallery!;
+      pendingGallery = null;
+      const items = [];
+      for (const theme of themes) {
+        let html: string | null = null;
+        try {
+          html = await inlineFonts(render(withTheme(data, theme)), fonts);
+        } catch {
+          /* shown as unavailable */
+        }
+        items.push({ theme, html });
+        if (pending) break; // a newer preview is waiting; this gallery will be asked for again
+      }
+      if (items.length === themes.length) send({ type: 'gallery', id, items });
+      else pendingGallery ??= { type: 'gallery', id, data, themes };
     }
   } catch {
     /* boot failure already reported */
