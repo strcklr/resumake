@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
 
 from resumake import themes
@@ -147,7 +149,8 @@ def _entry(key: str, item: dict) -> dict:
     return entry
 
 
-def build_context(data: dict) -> dict:
+def build_context(data: dict, theme_dirs: Iterable[Path] = ()) -> dict:
+    """The view model for `data`. `theme_dirs`: folders of the resumes repo's own themes (themes.find_dir)."""
     basics = data["basics"]
     layout = data.get("layout", {})
     titles = {**DEFAULT_TITLES, **layout.get("titles", {})}
@@ -167,7 +170,8 @@ def build_context(data: dict) -> dict:
             entries = [_entry(key, item) for item in items]
         sections.append({"key": key, "title": titles[key], "entries": entries})
 
-    theme = themes.load(layout.get("theme", themes.DEFAULT))
+    theme_dirs = tuple(theme_dirs)
+    theme = themes.load(layout.get("theme", themes.DEFAULT), theme_dirs)
     # A theme without colour (accent: null) ignores layout.accent.
     accent = (layout.get("accent") or theme.accent) if theme.accent else None
     return {
@@ -175,5 +179,6 @@ def build_context(data: dict) -> dict:
         "contact": _contact(basics),
         "sections": sections,
         "theme": theme.name,
+        "theme_dirs": theme_dirs,
         "accent": accent,
     }

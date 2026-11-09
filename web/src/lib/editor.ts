@@ -14,6 +14,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { indentWithTab } from '@codemirror/commands';
 import { suggest, suggestValue, type Suggestion } from './complete';
+import type { ThemeInfo } from './themes';
 import type { Problem } from './validate';
 
 export interface EditorOptions {
@@ -24,6 +25,8 @@ export interface EditorOptions {
    * Problems in other files belong in the page's list, not here.
    */
   check: (text: string) => Problem[];
+  /** The themes `layout.theme` can name, for its suggestions (built-in and the repo's own). */
+  themes?: () => ThemeInfo[];
 }
 
 /** One editor view; each open file has its own state (text, undo history, selection). */
@@ -33,7 +36,7 @@ export interface Editor {
   stateFor: (text: string) => EditorState;
 }
 
-function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
+function fieldCompletions(ctx: CompletionContext, themes?: () => ThemeInfo[]): CompletionResult | null {
   const line = ctx.state.doc.lineAt(ctx.pos);
   const before = line.text.slice(0, ctx.pos - line.from);
   const lines: string[] = [];
@@ -42,7 +45,7 @@ function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
   for (let n = line.number + 1; n <= ctx.state.doc.lines; n++) lines.push(ctx.state.doc.line(n).text);
 
   // A value after `key: `, e.g. `theme: mod` or `accent: "#0f`.
-  const value = suggestValue(lines, line.number - 1);
+  const value = suggestValue(lines, line.number - 1, themes?.());
   if (value) {
     return {
       from: line.from + value.start,
@@ -89,7 +92,7 @@ export function createEditor(opts: EditorOptions): Editor {
     EditorState.tabSize.of(2),
     lintGutter(),
     resumeLint,
-    autocompletion({ override: [fieldCompletions], activateOnTyping: true }),
+    autocompletion({ override: [(ctx) => fieldCompletions(ctx, opts.themes)], activateOnTyping: true }),
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ 'aria-label': 'Resume YAML' }),
   ];

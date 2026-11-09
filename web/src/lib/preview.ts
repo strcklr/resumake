@@ -47,6 +47,11 @@ export class PreviewClient {
     this.post({ type: 'render', id: ++this.latest, data });
   }
 
+  /** Use the resumes repo's own themes (ThemeFiles) in later renders. */
+  setRepoThemes(files: Record<string, string>): void {
+    this.post({ type: 'themes', files });
+  }
+
   /** Render `data` in each of `themes`, for the gallery. */
   renderGallery(data: unknown, themes: string[]): void {
     this.post({ type: 'gallery', id: ++this.latestGallery, data, themes });

@@ -82,8 +82,15 @@ describe('reading a repo', () => {
         { path: 'resumes/default.yml', type: 'blob', sha: 'b1' },
         { path: 'resumes/tailored/acme.yml', type: 'blob', sha: 'b2' },
         { path: '.github/workflows/build.yml', type: 'blob', sha: 'w' },
+        { path: 'themes/mine/theme.json', type: 'blob', sha: 't1' },
+        { path: 'themes/mine/style.css', type: 'blob', sha: 't2' },
+        { path: 'themes/mine/fonts/a.woff2', type: 'blob', sha: 't3' },
+        { path: 'themes/mine/notes.md', type: 'blob', sha: 'skip' },
       ],
     },
+    '/repos/jo/resumes/git/blobs/t1': { content: b64('{"title": "Mine"}'), encoding: 'base64' },
+    '/repos/jo/resumes/git/blobs/t2': { content: b64('body { color: red }'), encoding: 'base64' },
+    '/repos/jo/resumes/git/blobs/t3': { content: 'AAEC\nAw==', encoding: 'base64' },
     '/repos/jo/resumes/git/blobs/b1': { content: b64('basics:\n  name: Jö\n'), encoding: 'base64' },
     '/repos/jo/resumes/git/blobs/b2': { content: b64('extends: ../default.yml\n'), encoding: 'base64' },
   };
@@ -98,7 +105,7 @@ describe('reading a repo', () => {
     expect(await gh.repos()).toEqual([{ fullName: 'jo/resumes', private: true, defaultBranch: 'main' }]);
   });
 
-  it('loads the resumes folder as workspace files', async () => {
+  it('loads the resumes folder as workspace files, and the repo’s own themes', async () => {
     const loaded = await gh.loadResumes({ fullName: 'jo/resumes', private: true, defaultBranch: 'main' });
     expect(loaded).toEqual({
       repo: 'jo/resumes',
@@ -107,6 +114,11 @@ describe('reading a repo', () => {
       commit: 'c0ffee',
       folder: 'resumes',
       files: { 'default.yml': 'basics:\n  name: Jö\n', 'tailored/acme.yml': 'extends: ../default.yml\n' },
+      themes: {
+        'mine/theme.json': '{"title": "Mine"}',
+        'mine/style.css': 'body { color: red }',
+        'mine/fonts/a.woff2': 'data:font/woff2;base64,AAECAw==',
+      },
     });
   });
 

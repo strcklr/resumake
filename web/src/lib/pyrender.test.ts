@@ -113,6 +113,28 @@ describe('rendering in Pyodide', () => {
     }
   });
 
+  it('renders with the repo’s own themes, and forgets them when they change', () => {
+    const data = { basics: { name: 'A' }, layout: { theme: 'mine' } };
+    render.setRepoThemes({
+      'mine/theme.json': '{"title": "Mine"}',
+      'mine/style.css': '@font-face { src: url(fonts/a.woff2) } body { color: rebeccapurple }',
+      'mine/fonts/a.woff2': 'data:font/woff2;base64,AAAA',
+      'mine/resume.html.j2': '<!doctype html><style>{{ css | safe }}</style><h1 class="mine">{{ basics.name }}</h1>',
+    });
+    const html = render(data);
+    expect(html).toContain('<h1 class="mine">A</h1>');
+    expect(html).toContain('rebeccapurple');
+    expect(html).toContain('url("data:font/woff2;base64,AAAA")');
+
+    render.setRepoThemes({ 'mine/theme.json': '{}', 'mine/style.css': 'body { color: teal }' });
+    const next = render(data);
+    expect(next).toContain('teal');
+    expect(next).not.toContain('class="mine"'); // the old template is gone; the shared one is used
+
+    render.setRepoThemes({});
+    expect(() => render(data)).toThrow(/unknown theme 'mine'/);
+  });
+
   it('escapes text from the resume', () => {
     const html = render({ basics: { name: '<script>alert(1)</script>' } });
     expect(html).not.toContain('<script>alert');

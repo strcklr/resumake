@@ -110,6 +110,11 @@ has errors, the last valid version stays on screen, dimmed.
   as an ordinary edit (`src/lib/layout.ts`: a small text change, so comments and formatting stay, and
   undo works). A tailored file gets its own override. The **Themes** tab shows the open resume's
   first page in every theme (rendered only while the tab is open); picking one does the same.
+- **Your repo's themes:** opening a resumes repo (from GitHub, or Open folder on the repo's folder)
+  also loads its `themes/` folder: theme.json, style.css, any `.j2` templates and `fonts/*.woff2`
+  (kept as data URLs). They're written into Pyodide's filesystem for the renderer, listed in the
+  picker, the Themes tab and autocomplete, and used to check `layout.theme`. They're read-only here
+  and never part of a save.
 - **Fonts:** each theme's bundled fonts are separate files, fetched the first time a resume uses that
   theme and inlined into the rendered page as data URLs, so the preview looks like the PDF and a
   downloaded copy needs no other files.

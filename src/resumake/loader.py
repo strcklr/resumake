@@ -10,6 +10,7 @@ from typing import Any
 import jsonschema
 import yaml
 
+from resumake import themes
 from resumake.errors import ResumeError
 from resumake.schema import SCHEMA
 
@@ -75,18 +76,27 @@ def load_resume(path: str | Path, validate: bool = True) -> dict:
     path = Path(path).resolve()
     data = _load(path, ())
     if validate:
-        validate_resume(data, source=path)
+        validate_resume(data, source=path, theme_dirs=theme_dirs(path))
     return data
 
 
-def validate_resume(data: dict, source: Path | str = "<resume>") -> None:
+def theme_dirs(path: Path) -> tuple[Path, ...]:
+    """Where the resumes repo holding `path` keeps its own themes, if it has any."""
+    found = themes.find_dir(Path(path).resolve().parent)
+    return (found,) if found else ()
+
+
+def validate_resume(data: dict, source: Path | str = "<resume>", theme_dirs: tuple[Path, ...] = ()) -> None:
     validator = jsonschema.Draft202012Validator(SCHEMA)
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
-    if errors:
-        lines = [
-            f"  - {'.'.join(str(p) for p in e.absolute_path) or '<root>'}: {_message(e)}"
-            for e in errors
-        ]
+    lines = [f"  - {'.'.join(str(p) for p in e.absolute_path) or '<root>'}: {_message(e)}" for e in errors]
+    # The schema can't list a repo's own themes, so the theme's existence is checked here.
+    theme = (data.get("layout") or {}).get("theme")
+    if isinstance(theme, str) and not any(e.absolute_path and list(e.absolute_path)[:2] == ["layout", "theme"] for e in errors):
+        known = themes.available(theme_dirs)
+        if theme not in known:
+            lines.append(f"  - layout.theme: unknown theme {theme!r} (choose from {', '.join(known)})")
+    if lines:
         raise ResumeError(f"{source}: invalid resume:\n" + "\n".join(lines))
 
 

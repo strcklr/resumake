@@ -194,8 +194,26 @@ Each theme is a folder in `src/resumake/themes/`:
   computer, so `docx.font` names a common one (Georgia, Arial, Calibri) rather than the bundled
   web font.
 
-To add a theme, copy a theme folder, change its stylesheet and `theme.json`, and run
-`resumake schema -o web/src/lib/schema.json` so the schema (and the editor) know its name.
+### Your own themes
+
+A resumes repo can keep its own themes in a `themes/` folder at its root, next to `resumes/`. Start
+from a built-in one:
+
+```bash
+resumake themes new mine --from modern   # copies modern into themes/mine/
+```
+
+Then edit `themes/mine/style.css` (and `theme.json`'s title, description and accent) and set
+`layout.theme: mine`. A theme folder has the same files as a built-in one; in your own, every
+`theme.json` field is optional, and Word settings you leave out come from classic. The CLI finds
+`themes/` by looking in each resume's folder and the folders above it, up to the repo root; a theme
+there replaces a built-in one of the same name. `resumake themes` lists yours too.
+
+The web editor loads your repo's `themes/` with its resumes (from GitHub, or Open folder on the
+repo's folder), so the preview, the theme picker and the Themes tab show your themes. It doesn't
+edit or save theme files: change those in the repo.
+
+To add a built-in theme to resumake itself, add a folder to `src/resumake/themes/` the same way.
 
 Markdown has one shared template: `src/resumake/templates/resume.md.j2`.
 

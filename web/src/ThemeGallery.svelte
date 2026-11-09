@@ -6,9 +6,11 @@
    * Each thumbnail is a sandboxed iframe with no permissions (no scripts, no same-origin access),
    * drawn at Letter width and scaled down; clicks go to the card, not the page inside it.
    */
-  import { THEMES } from './lib/themes';
+  import type { ThemeInfo } from './lib/themes';
 
   interface Props {
+    /** Built-in and the repo's own themes. */
+    themes: ThemeInfo[];
     /** The renders, by theme name; null until the first gallery render arrives. */
     items: Record<string, string | null> | null;
     /** The theme the open resume uses now. */
@@ -19,7 +21,7 @@
     stale: boolean;
     onPick: (name: string) => void;
   }
-  let { items, current, file, stale, onPick }: Props = $props();
+  let { themes, items, current, file, stale, onPick }: Props = $props();
 
   const PAGE_WIDTH = 8.5 * 96;
   const PAGE_HEIGHT = 11 * 96;
@@ -32,7 +34,7 @@
 </p>
 
 <ul class="gallery" style:--thumb-w="{PAGE_WIDTH * SCALE}px" style:--thumb-h="{PAGE_HEIGHT * SCALE}px">
-  {#each THEMES as theme (theme.name)}
+  {#each themes as theme (theme.name)}
     {@const html = items?.[theme.name]}
     <li>
       <button
@@ -63,6 +65,7 @@
         </span>
         <span class="name">
           {theme.title}
+          {#if theme.custom}<span class="badge mine" title="From your repo's themes/ folder">Yours</span>{/if}
           {#if theme.name === current}<span class="badge">In use</span>{/if}
         </span>
         <span class="desc">{theme.description}</span>
@@ -96,6 +99,7 @@
     font-size: 0.65rem; font-weight: 600; padding: 0.05rem 0.4rem; border-radius: 999px;
     background: var(--accent); color: var(--accent-text);
   }
+  .badge.mine { background: transparent; color: var(--muted); border: 1px solid var(--border); }
   .desc { align-self: stretch; font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
   .warn { color: var(--warn); }
   .spinner {

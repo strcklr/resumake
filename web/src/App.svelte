@@ -25,7 +25,7 @@
   } from './lib/files';
   import { diffFiles, type LoadedRepo } from './lib/github';
   import { hasSyntaxErrors, ownLayoutField, setLayoutField, type LayoutKey } from './lib/layout';
-  import { effectiveLook, THEMES } from './lib/themes';
+  import { allThemes, effectiveLook, type ThemeFiles } from './lib/themes';
   import { PreviewClient } from './lib/preview';
   import { formatPath } from './lib/validate';
   import {
@@ -49,6 +49,10 @@
   let tabs = $state(saved.tabs);
   /** The GitHub repo the files came from; cleared when they're replaced from elsewhere. */
   let source = $state<Source | null>(saved.source ?? null);
+  /** The repo's own themes (its `themes/` folder), from GitHub or an opened repo folder. Read-only here. */
+  let repoThemes = $state.raw<ThemeFiles>(saved.themes ?? {});
+  const themeList = $derived(allThemes(repoThemes));
+  const themeNames = $derived(themeList.map((t) => t.name));
   // Coming back from GitHub sign-in lands on the GitHub tab.
   const returningFromGitHub = new URLSearchParams(window.location.search).has('code');
   let filesMenuOpen = $state(false);
@@ -100,13 +104,14 @@
   });
   // The gallery renders every theme, so only while it's open (and again when the resume changes).
   $effect(() => {
-    if (tab === 'themes' && rendered && !partial) preview?.renderGallery(rendered, THEMES.map((t) => t.name));
+    if (tab === 'themes' && rendered && !partial) preview?.renderGallery(rendered, themeNames);
   });
   // The theme picker: shows what the resolved resume uses, and writes changes into the open file.
   const look = $derived.by(() => {
     if (partial || !resolved?.data) return null;
-    const { theme, accent } = effectiveLook(resolved.data);
+    const { theme, accent } = effectiveLook(resolved.data, themeList);
     return {
+      themes: themeList,
       theme,
       accent,
       ownAccent: ownLayoutField(files[active], 'accent') !== undefined,
@@ -133,7 +138,7 @@
   function check(text: string) {
     files[active] = text;
     const snapshot = $state.snapshot(files);
-    const result = new Workspace(snapshot).resolve(active);
+    const result = new Workspace(snapshot, themeNames).resolve(active);
     resolved = result;
     persist(snapshot);
     // Render only what passes validation; otherwise keep showing the last good version.
@@ -145,7 +150,7 @@
   }
 
   function persist(snapshot = $state.snapshot(files)) {
-    saveWorkspace({ files: snapshot, active, tabs: $state.snapshot(tabs), source: $state.snapshot(source) });
+    saveWorkspace({ files: snapshot, active, tabs: $state.snapshot(tabs), source: $state.snapshot(source), themes: repoThemes });
   }
 
   /** Show a file in the editor (opening its tab if it's closed), optionally selecting a range in it. */
@@ -175,9 +180,17 @@
   }
 
   /** Replace every file (sample, opened folder) and show `first`. */
-  function replaceAll(next: Record<string, string>, first: string, openTabs: string[], from: Source | null = null) {
+  function replaceAll(
+    next: Record<string, string>,
+    first: string,
+    openTabs: string[],
+    from: Source | null = null,
+    themes: ThemeFiles = {},
+  ) {
     states.clear();
     source = from;
+    repoThemes = themes;
+    preview?.setRepoThemes(themes);
     files = next;
     active = first;
     tabs = openTabs;
@@ -201,7 +214,13 @@
       onError: (error) => (renderError = error),
       onGallery: (items) => (gallery = Object.fromEntries(items.map((i) => [i.theme, i.html]))),
     });
-    editor = createEditor({ parent: host, dark: matchMedia('(prefers-color-scheme: dark)').matches, check });
+    if (Object.keys(repoThemes).length) preview.setRepoThemes(repoThemes);
+    editor = createEditor({
+      parent: host,
+      dark: matchMedia('(prefers-color-scheme: dark)').matches,
+      check,
+      themes: () => themeList,
+    });
     editor.view.setState(editor.stateFor(files[active]));
     if (returningFromGitHub) document.getElementById('editor')?.scrollIntoView();
     return () => {
@@ -272,7 +291,7 @@
 
   async function openFiles(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
-    const picked = await readPicked(input.files!);
+    const picked = (await readPicked(input.files!)).files;
     input.value = '';
     const names = Object.keys(picked);
     if (!names.length) return;
@@ -292,7 +311,7 @@
 
   async function openFolder(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
-    const picked = await readPicked(input.files!);
+    const { files: picked, themes } = await readPicked(input.files!);
     input.value = '';
     const names = sortPaths(Object.keys(picked));
     if (!names.length) {
@@ -301,7 +320,7 @@
     }
     if (!confirm(`Replace all your files with the ${names.length} resume file${names.length === 1 ? '' : 's'} in that folder?`)) return;
     // Every file opens as a tab, base file first, so it's clear what was loaded.
-    replaceAll(picked, names.includes(BASE_FILE) ? BASE_FILE : names[0], names);
+    replaceAll(picked, names.includes(BASE_FILE) ? BASE_FILE : names[0], names, null, themes);
   }
 
   /** Put a GitHub repo's resumes in the editor, replacing what's here (after asking). */
@@ -320,7 +339,7 @@
       commit: loaded.commit,
       folder: loaded.folder,
       base: { ...loaded.files },
-    });
+    }, loaded.themes);
     tab = 'preview';
     return true;
   }
@@ -504,6 +523,7 @@
     {#if tab === 'themes' && !partial}
       <div class="tab-body" role="tabpanel">
         <ThemeGallery
+          themes={themeList}
           items={gallery}
           current={look?.theme.name ?? 'classic'}
           file={active}

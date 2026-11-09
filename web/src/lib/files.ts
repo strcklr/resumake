@@ -9,6 +9,7 @@
 import { strToU8, zipSync } from 'fflate';
 import sampleBase from '../../../resumes/default.yml?raw';
 import sampleTailored from '../../../resumes/tailored/example-platform.yml?raw';
+import { isThemeFile, type ThemeFiles } from './themes';
 import type { Files } from './workspace';
 
 export interface Saved {
@@ -18,6 +19,8 @@ export interface Saved {
   tabs: string[];
   /** The GitHub repo the files were opened from, if any. */
   source?: Source | null;
+  /** The repo's own themes (its `themes/` folder), read-only here. */
+  themes?: ThemeFiles;
 }
 
 export interface Source {
@@ -53,7 +56,13 @@ export function loadWorkspace(): Saved {
         const paths = sortPaths(Object.keys(saved.files));
         const active = saved.active && saved.active in saved.files ? saved.active : paths[0];
         const tabs = (saved.tabs ?? paths).filter((t) => t in saved.files!);
-        return { files: saved.files, active, tabs: tabs.includes(active) ? tabs : [...tabs, active], source: saved.source ?? null };
+        return {
+          files: saved.files,
+          active,
+          tabs: tabs.includes(active) ? tabs : [...tabs, active],
+          source: saved.source ?? null,
+          themes: saved.themes ?? {},
+        };
       }
     }
     const draft = localStorage.getItem(OLD_DRAFT_KEY);
@@ -112,16 +121,38 @@ extends: ${relativePath(path, base)}
 `;
 }
 
-/** Turn picked files (or a picked folder) into workspace files. Folder picks drop the folder's own name. */
-export async function readPicked(list: FileList): Promise<Files> {
-  const files: Files = {};
-  for (const file of Array.from(list)) {
-    if (!/\.ya?ml$/i.test(file.name)) continue;
+/**
+ * Turn picked files (or a picked folder) into workspace files. Folder picks drop the folder's own
+ * name. A picked resumes repo (a folder holding `resumes/`) gives the files in `resumes/`, as on
+ * GitHub, and its own themes from `themes/`.
+ */
+export async function readPicked(list: FileList): Promise<{ files: Files; themes: ThemeFiles }> {
+  const picked = Array.from(list).map((file) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
     const parts = rel.split('/');
-    files[parts.length > 1 ? parts.slice(1).join('/') : rel] = await file.text();
+    return { file, path: parts.length > 1 ? parts.slice(1).join('/') : rel };
+  });
+  const isRepo = picked.some((p) => /^resumes\/.+\.ya?ml$/i.test(p.path));
+  const files: Files = {};
+  const themes: ThemeFiles = {};
+  for (const { file, path } of picked) {
+    if (isRepo && path.startsWith('themes/') && isThemeFile(path.slice('themes/'.length))) {
+      const rel = path.slice('themes/'.length);
+      themes[rel] = rel.endsWith('.woff2') ? await dataUrl(file, 'font/woff2') : await file.text();
+      continue;
+    }
+    if (!/\.ya?ml$/i.test(file.name)) continue;
+    if (isRepo && !path.startsWith('resumes/')) continue; // workflows and other config, not resumes
+    files[isRepo ? path.slice('resumes/'.length) : path] = await file.text();
   }
-  return files;
+  return { files, themes };
+}
+
+async function dataUrl(file: Blob, type: string): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${type};base64,${btoa(binary)}`;
 }
 
 export function zipFiles(files: Files): Uint8Array {

@@ -7,7 +7,7 @@
    * resume itself can't use that access. Links open in a new tab.
    */
   import { onMount } from 'svelte';
-  import { THEMES, type ThemeInfo } from './lib/themes';
+  import type { ThemeInfo } from './lib/themes';
 
   interface Props {
     html: string | null;
@@ -28,6 +28,8 @@
     look?: Look | null;
   }
   export interface Look {
+    /** Every theme to choose from: built-in and the repo's own. */
+    themes: ThemeInfo[];
     theme: ThemeInfo;
     /** The accent in use (`#rrggbb`), or null when the theme has no colour. */
     accent: string | null;
@@ -134,7 +136,7 @@
         <label title={`${look.theme.description} Written to layout.theme in ${look.file}.`}>
           <span>Theme</span>
           <select value={look.theme.name} onchange={(e) => look.setTheme(e.currentTarget.value)}>
-            {#each THEMES as t (t.name)}<option value={t.name}>{t.title}</option>{/each}
+            {#each look.themes as t (t.name)}<option value={t.name}>{t.title}{t.custom ? ' (yours)' : ''}</option>{/each}
           </select>
         </label>
         {#if look.accent}
