@@ -1,0 +1,15 @@
+{
+  "title": "Executive",
+  "description": "Source Serif 4, a full-width name band in the accent colour, generous spacing. Formal.",
+  "accent": "#1f3a5f",
+  "docx": {
+    "font": "Georgia",
+    "body_size": 9.5,
+    "margin": 0.8,
+    "colors": { "ink": "111827", "text": "1F2328", "muted": "5B6270" },
+    "header": { "align": "left", "name_size": 26, "label_size": 12, "label_color": "accent", "contact_separator": "  •  " },
+    "heading": { "size": 11.5, "color": "accent", "rule": "C9CED6", "spacing": 0.4 },
+    "dates_italic": false,
+    "role": { "color": "ink", "italic": true }
+  }
+}

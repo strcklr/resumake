@@ -1,0 +1,15 @@
+{
+  "title": "Minimal",
+  "description": "IBM Plex Sans, lots of white space, light weights, small grey section labels, no rules.",
+  "accent": "#3b5bdb",
+  "docx": {
+    "font": "Calibri",
+    "body_size": 9.5,
+    "margin": 0.85,
+    "colors": { "ink": "1C1E21", "text": "33363A", "muted": "8A8F98" },
+    "header": { "align": "left", "name_size": 24, "label_size": 11, "label_color": "accent", "contact_separator": "     " },
+    "heading": { "size": 7.5, "color": "muted", "rule": null, "spacing": 1.8 },
+    "dates_italic": false,
+    "role": { "color": "ink", "italic": true }
+  }
+}

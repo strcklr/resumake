@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import sample from '../../../resumes/default.yml?raw';
 import tailored from '../../../resumes/tailored/example-platform.yml?raw';
 import { suggest, suggestValue } from './complete';
+import { THEMES } from './themes';
 import { validate } from './validate';
 
 const lineOf = (text: string, needle: string) => text.split('\n').findIndex((l) => l.includes(needle)) + 1;
@@ -116,7 +117,8 @@ describe('suggestValue', () => {
 
   it('offers themes for layout.theme, with their titles', () => {
     const out = at('layout:\n  theme: mo')!;
-    expect(out.options.map((o) => o.label)).toEqual(['classic', 'compact', 'modern']);
+    expect(out.options.map((o) => o.label)).toEqual(THEMES.map((t) => t.name));
+    expect(out.options[0].label).toBe('classic');
     expect(out.options.find((o) => o.label === 'modern')?.detail).toMatch(/Modern/);
     expect(out.start).toBe('  theme: '.length);
   });

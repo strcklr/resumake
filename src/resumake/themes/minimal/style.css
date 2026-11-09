@@ -1,0 +1,54 @@
+/* minimal: IBM Plex Sans, lots of white space, light weights, small grey section labels, no rules. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 300; src: url(fonts/ibm-plex-sans-latin-300-normal.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; src: url(fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: italic; src: url(fonts/ibm-plex-sans-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; src: url(fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; src: url(fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --accent: #3b5bdb;   /* used sparingly: the headline only; layout.accent overrides it */
+  --ink: #1c1e21;
+  --text: #33363a;
+  --muted: #8a8f98;
+}
+* { box-sizing: border-box; }
+html { font-size: 9.25pt; }
+body { margin: 0; color: var(--text); background: #fff; font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; font-weight: 400; line-height: 1.55; }
+.resume { max-width: 8.5in; margin: 0 auto; padding: 0.8in 0.9in; }
+a { color: inherit; text-decoration: none; }
+p { margin: 0; }
+
+header { margin-bottom: 8pt; }
+h1 { font-size: 24pt; font-weight: 300; letter-spacing: -0.01em; color: var(--ink); margin: 0; line-height: 1.15; }
+.label { font-size: 11pt; font-weight: 400; color: var(--accent); margin: 2pt 0 8pt; }
+.contact { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; row-gap: 1pt; column-gap: 14pt; font-size: 8.5pt; color: var(--muted); }
+.contact .sep { display: none; }
+
+/* Section labels: small, grey, spaced; no rules */
+h2 { font-size: 7.5pt; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin: 20pt 0 6pt; }
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { margin: 2pt 0; }
+.skills strong { color: var(--ink); font-weight: 500; }
+
+.entry { margin-top: 11pt; break-inside: avoid; }
+.entry:has(.role) { break-inside: auto; }
+.section-education .entry, .section-certifications .entry { margin-top: 6pt; }
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+h3 { font-size: 10pt; font-weight: 500; color: var(--ink); margin: 0; }
+.org { font-weight: 400; color: var(--muted); }
+.org-sep { margin: 0 0.4em; color: #c9ccd1; }
+.dates { color: var(--muted); font-size: 8.5pt; font-weight: 300; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sub { margin-top: 1pt; color: var(--muted); font-weight: 300; }
+.entry > p { margin: 2pt 0; }
+.keywords { color: var(--muted); font-size: 8.5pt; }
+
+.role { margin-top: 6pt; break-inside: avoid; }
+h4 { font-size: 9.5pt; font-weight: 400; font-style: italic; color: var(--ink); margin: 0 0 1pt; }
+
+/* Bullets: thin dashes */
+.entry ul { margin: 3pt 0 0; padding-left: 12pt; list-style: none; }
+.entry li { margin: 2pt 0; position: relative; }
+.entry li::before { content: "–"; position: absolute; left: -11pt; color: var(--muted); }
+
+@page { size: Letter; margin: 0.8in 0.9in; }
+@media print { .resume { max-width: none; padding: 0; } }

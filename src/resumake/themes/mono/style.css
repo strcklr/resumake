@@ -1,0 +1,60 @@
+/* mono: a developer look. JetBrains Mono headings, Inter body, `#` before section names. */
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; src: url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 700; src: url(fonts/jetbrains-mono-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; src: url(fonts/inter-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; font-style: italic; src: url(fonts/inter-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --accent: #2f6fe0;   /* the `#`s, links and role titles; layout.accent overrides it */
+  --ink: #111418;
+  --text: #2a2f36;
+  --muted: #6a717c;
+  --rule: #e3e6ea;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { font-size: 9pt; }
+body { margin: 0; color: var(--text); background: #fff; font-family: Inter, "Helvetica Neue", Arial, sans-serif; line-height: 1.45; }
+.resume { max-width: 8.5in; margin: 0 auto; padding: 0.6in 0.7in; }
+a { color: inherit; text-decoration: none; }
+p { margin: 0; }
+
+header { margin-bottom: 10pt; padding-bottom: 9pt; border-bottom: 1pt solid var(--rule); }
+h1 { font-family: var(--mono); font-size: 22pt; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin: 0; line-height: 1.15; }
+.label { font-family: var(--mono); font-size: 10pt; color: var(--muted); margin: 3pt 0 6pt; }
+.label::before { content: "// "; color: var(--accent); }
+.contact { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; row-gap: 1pt; column-gap: 14pt; font-family: var(--mono); font-size: 8pt; color: var(--muted); }
+.contact .sep { display: none; }
+.contact a { color: var(--accent); }
+
+/* Section names like Markdown headings */
+h2 { font-family: var(--mono); font-size: 10.5pt; font-weight: 700; color: var(--ink); margin: 15pt 0 5pt; }
+h2::before { content: "# "; color: var(--accent); }
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { margin: 2pt 0; }
+.skills strong { color: var(--ink); font-weight: 600; }
+
+.entry { margin-top: 9pt; break-inside: avoid; }
+.entry:has(.role) { break-inside: auto; }
+.section-education .entry, .section-certifications .entry { margin-top: 5pt; }
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+h3 { font-size: 10pt; font-weight: 600; color: var(--ink); margin: 0; }
+h3 a { color: var(--accent); }
+.org { font-weight: 400; color: var(--muted); }
+.org-sep { margin: 0 0.4em; color: #c3c8cf; }
+.dates { font-family: var(--mono); color: var(--muted); font-size: 7.75pt; white-space: nowrap; }
+.sub { margin-top: 1pt; color: var(--muted); }
+.entry > p { margin: 2pt 0; }
+.keywords { font-family: var(--mono); color: var(--muted); font-size: 7.75pt; }
+
+.role { margin-top: 5pt; break-inside: avoid; }
+h4 { font-family: var(--mono); font-size: 9pt; font-weight: 700; color: var(--accent); margin: 0 0 1pt; }
+
+/* Bullets as list dashes */
+.entry ul { margin: 3pt 0 0; padding-left: 12pt; list-style: none; }
+.entry li { margin: 2pt 0; position: relative; }
+.entry li::before { content: "-"; position: absolute; left: -11pt; font-family: var(--mono); color: var(--accent); }
+
+@page { size: Letter; margin: 0.6in 0.7in; }
+@media print { .resume { max-width: none; padding: 0; } }

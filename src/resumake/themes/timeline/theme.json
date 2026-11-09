@@ -1,0 +1,15 @@
+{
+  "title": "Timeline",
+  "description": "Lato, dates in a left column beside a line with a dot for each job and role. Shows a career path at a glance.",
+  "accent": "#c2410c",
+  "docx": {
+    "font": "Calibri",
+    "body_size": 9.5,
+    "margin": 0.65,
+    "colors": { "ink": "16181D", "text": "2B2F36", "muted": "6B7079" },
+    "header": { "align": "left", "name_size": 24, "label_size": 11, "label_color": "accent", "contact_separator": "    " },
+    "heading": { "size": 8.5, "color": "accent", "rule": "DCDFE4", "spacing": 1.2 },
+    "dates_italic": false,
+    "role": { "color": "text", "italic": false }
+  }
+}

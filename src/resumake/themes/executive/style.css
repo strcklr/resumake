@@ -1,0 +1,65 @@
+/* executive: Source Serif 4, a full-width name band in the accent colour, generous spacing. */
+@font-face { font-family: "Source Serif 4"; font-weight: 400; src: url(fonts/source-serif-4-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 400; font-style: italic; src: url(fonts/source-serif-4-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 600; src: url(fonts/source-serif-4-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 700; src: url(fonts/source-serif-4-latin-700-normal.woff2) format("woff2"); }
+
+:root {
+  --accent: #1f3a5f;   /* the name band and headings; layout.accent overrides it (keep it dark) */
+  --ink: #111827;
+  --text: #1f2328;
+  --muted: #5b6270;
+  --rule: #c9ced6;
+  --side: 0.8in;       /* page side margin; the band runs out to the paper's edges */
+  --top: 0.7in;
+}
+* { box-sizing: border-box; }
+html { font-size: 9.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; color: var(--text); background: #fff; font-family: "Source Serif 4", Georgia, "Times New Roman", serif; line-height: 1.45; }
+.resume { max-width: 8.5in; margin: 0 auto; padding: var(--top) var(--side); }
+a { color: inherit; text-decoration: none; }
+p { margin: 0; }
+
+/* Header: a band across the top of the first page */
+header {
+  margin: calc(-1 * var(--top)) calc(-1 * var(--side)) 8pt;
+  padding: 0.42in var(--side) 0.3in;
+  background: var(--accent); color: #fff;
+}
+h1 { font-size: 27pt; font-weight: 600; letter-spacing: 0.01em; margin: 0; line-height: 1.1; color: #fff; }
+.label { font-size: 12pt; font-style: italic; margin: 4pt 0 9pt; color: rgb(255 255 255 / 0.85); }
+.contact { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; row-gap: 2pt; column-gap: 16pt; font-size: 9pt; color: rgb(255 255 255 / 0.85); }
+.contact .sep { display: none; }  /* spacing instead: a separator would start a wrapped line */
+
+/* Section headings: the accent colour over a fine rule */
+h2 {
+  font-size: 12pt; font-weight: 600; letter-spacing: 0.04em; font-variant: small-caps;
+  color: var(--accent); margin: 14pt 0 6pt; padding-bottom: 2pt; border-bottom: 0.75pt solid var(--rule);
+}
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { margin: 3pt 0; }
+.skills strong { color: var(--ink); font-weight: 600; }
+
+.entry { margin-top: 8pt; break-inside: avoid; }
+.entry:has(.role) { break-inside: auto; }
+.section-education .entry, .section-certifications .entry { margin-top: 6pt; }
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+h3 { font-size: 11pt; font-weight: 700; color: var(--ink); margin: 0; }
+.org { font-weight: 400; font-style: italic; color: var(--muted); }
+.org-sep { margin: 0 0.45em; color: var(--rule); font-style: normal; }
+.dates { color: var(--muted); font-size: 9pt; white-space: nowrap; }
+.sub { margin-top: 1pt; color: var(--muted); font-style: italic; }
+.entry > p { margin: 3pt 0; }
+.keywords { color: var(--muted); font-size: 9pt; }
+
+.role { margin-top: 6pt; break-inside: avoid; }
+h4 { font-size: 10.25pt; font-weight: 600; font-style: italic; color: var(--ink); margin: 0 0 1pt; }
+
+.entry ul { margin: 3pt 0 0; padding-left: 14pt; }
+.entry li { margin: 2.5pt 0; }
+.entry li::marker { color: var(--accent); }
+
+/* The first page's band starts at the paper's top edge; later pages keep a top margin. */
+@page { size: Letter; margin: 0.7in 0.8in; }
+@page :first { margin-top: 0; }
+@media print { :root { --top: 0in; } .resume { max-width: none; padding: 0; } }
