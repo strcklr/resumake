@@ -160,7 +160,6 @@
 </script>
 
 <div class="save">
-  <h3>Save to GitHub</h3>
   {#if !diff}
     <p>Open the repo again (above) to save from here: these files were opened before saving was available.</p>
   {:else if !count && !result}
@@ -257,8 +256,7 @@
 </div>
 
 <style>
-  .save { margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
-  .save h3 { margin: 0 0 0.4rem; font-size: 0.9rem; }
+  .save { margin-top: 0.4rem; }
   .save p { margin: 0.4rem 0 0; font-size: 0.85rem; }
   .muted { color: var(--muted); }
   .changes { list-style: none; margin: 0.3rem 0 0.6rem; padding: 0; display: grid; gap: 0.15rem; font: 0.8rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
