@@ -1,0 +1,15 @@
+{
+  "title": "Classic",
+  "description": "Georgia serif, centred header, uppercase headings over a rule. The original look.",
+  "accent": null,
+  "docx": {
+    "font": "Georgia",
+    "body_size": 9.5,
+    "margin": 0.75,
+    "colors": { "ink": "000000", "text": "222222", "muted": "444444" },
+    "header": { "align": "center", "name_size": 28, "label_size": 11, "label_color": "text", "contact_separator": "  •  " },
+    "heading": { "size": 10, "color": "ink", "rule": "000000", "spacing": 0 },
+    "dates_italic": true,
+    "role": { "color": "text", "italic": true }
+  }
+}

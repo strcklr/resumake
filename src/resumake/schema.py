@@ -1,5 +1,7 @@
 """JSON Schema for a resume (applied after `extends` has been resolved)."""
 
+from resumake import themes
+
 _str = {"type": "string"}
 _str_list = {"type": "array", "items": _str}
 _date = {"type": ["string", "integer"]}  # "2021", "2021-03", "2021-03-15", "present"
@@ -151,6 +153,10 @@ SCHEMA = {
                 },
                 "titles": {"type": "object", "additionalProperties": _str},
                 "output_name": _str,
+                # How the resume looks: a folder in src/resumake/themes/. Defaults to classic.
+                "theme": {"enum": themes.available()},
+                # Accent colour for themes that use one (e.g. modern); others ignore it.
+                "accent": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
             },
         },
     },

@@ -210,3 +210,67 @@ def test_shared_extends_cases(case):
             load_resume(entry, validate=False)
     else:
         assert load_resume(entry, validate=False) == expected["data"]
+
+
+# --- themes ------------------------------------------------------------------
+
+from resumake import themes  # noqa: E402
+from resumake.context import build_context as _ctx  # noqa: E402
+
+
+def _with_layout(**layout):
+    data = load_resume(RESUMES / "default.yml")
+    return {**data, "layout": {**data.get("layout", {}), **layout}}
+
+
+def test_themes_are_listed_classic_first():
+    assert themes.available() == ["classic", "compact", "modern"]
+    for name in themes.available():
+        t = themes.load(name)
+        assert t.title and t.description and t.docx["font"]
+
+
+def test_classic_is_the_default():
+    assert _ctx(load_resume(RESUMES / "default.yml"))["theme"] == "classic"
+    assert "Georgia" in html.render_string(_ctx(load_resume(RESUMES / "default.yml")))
+
+
+def test_theme_and_accent_are_validated(tmp_path):
+    bad_theme = write(tmp_path / "a.yml", {"basics": {"name": "A"}, "layout": {"theme": "fancy"}})
+    with pytest.raises(ResumeError, match="layout.theme"):
+        load_resume(bad_theme)
+    bad_accent = write(tmp_path / "b.yml", {"basics": {"name": "A"}, "layout": {"accent": "teal"}})
+    with pytest.raises(ResumeError, match="layout.accent"):
+        load_resume(bad_accent)
+
+
+def test_accent_applies_only_to_themes_with_colour():
+    modern = _ctx(_with_layout(theme="modern"))
+    assert modern["accent"] == "#0f766e"  # the theme's default
+    assert "--accent: #4338ca" in html.render_string(_ctx(_with_layout(theme="modern", accent="#4338ca")))
+    compact = _ctx(_with_layout(theme="compact", accent="#4338ca"))
+    assert compact["accent"] is None
+    assert "#4338ca" not in html.render_string(compact)
+
+
+def test_theme_is_inherited_through_extends(tmp_path):
+    write(tmp_path / "default.yml", {"basics": {"name": "A"}, "layout": {"theme": "modern", "accent": "#123456"}})
+    leaf = write(tmp_path / "tailored" / "x.yml", {"extends": "../default.yml", "layout": {"accent": "#abcdef"}})
+    ctx = _ctx(load_resume(leaf))
+    assert (ctx["theme"], ctx["accent"]) == ("modern", "#abcdef")
+
+
+@pytest.mark.parametrize("theme", ["classic", "modern", "compact"])
+def test_every_theme_builds_every_format(tmp_path, theme):
+    assert main(["build", str(RESUMES / "default.yml"), "-t", theme, "-o", str(tmp_path)]) == 0
+    assert (tmp_path / "default.pdf").read_bytes().startswith(b"%PDF")
+    page = (tmp_path / "default.html").read_text(encoding="utf-8")
+    assert {"classic": "Georgia", "modern": "Inter", "compact": "Source Sans 3"}[theme] in page
+    docx_font = Document(tmp_path / "default.docx").styles["Normal"].font.name
+    assert docx_font == themes.load(theme).docx["font"]
+
+
+def test_cli_lists_themes(capsys):
+    assert main(["themes"]) == 0
+    out = capsys.readouterr().out
+    assert "classic" in out and "modern" in out and "compact" in out and "(default)" in out

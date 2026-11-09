@@ -1,0 +1,15 @@
+{
+  "title": "Modern",
+  "description": "Inter, left-aligned header, one accent colour.",
+  "accent": "#0f766e",
+  "docx": {
+    "font": "Arial",
+    "body_size": 9,
+    "margin": 0.65,
+    "colors": { "ink": "111827", "text": "1F2937", "muted": "6B7280" },
+    "header": { "align": "left", "name_size": 25, "label_size": 11.5, "label_color": "accent", "contact_separator": "    " },
+    "heading": { "size": 8, "color": "accent", "rule": "E5E7EB", "spacing": 1.2 },
+    "dates_italic": false,
+    "role": { "color": "accent", "italic": false }
+  }
+}

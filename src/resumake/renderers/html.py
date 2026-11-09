@@ -4,8 +4,9 @@ from resumake.renderers import _templates
 
 
 def render_string(ctx: dict) -> str:
-    template = _templates.environment(autoescape=True).get_template("resume.html.j2")
-    return template.render(**ctx, css=_templates.read("style.css"))
+    theme = ctx["theme"]
+    template = _templates.environment(autoescape=True, theme=theme).get_template("resume.html.j2")
+    return template.render(**ctx, css=_templates.read_theme(theme, "style.css"))
 
 
 def render(ctx: dict, out: Path) -> None:

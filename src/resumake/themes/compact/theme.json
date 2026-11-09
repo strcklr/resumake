@@ -1,0 +1,15 @@
+{
+  "title": "Compact",
+  "description": "Source Sans 3, black and white, dense. Fits more on a page.",
+  "accent": null,
+  "docx": {
+    "font": "Calibri",
+    "body_size": 9,
+    "margin": 0.5,
+    "colors": { "ink": "000000", "text": "1A1A1A", "muted": "555555" },
+    "header": { "align": "left", "name_size": 20, "label_size": 10.5, "label_color": "muted", "contact_separator": "  ·  " },
+    "heading": { "size": 8, "color": "ink", "rule": "C8C8C8", "spacing": 0.6 },
+    "dates_italic": false,
+    "role": { "color": "text", "italic": true }
+  }
+}

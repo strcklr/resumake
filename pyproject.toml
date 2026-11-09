@@ -26,7 +26,7 @@ resumake = "resumake.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-resumake = ["templates/*", "templates/fonts/*"]
+resumake = ["templates/*", "themes/*/*", "themes/*/fonts/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

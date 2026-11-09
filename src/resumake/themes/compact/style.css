@@ -1,0 +1,55 @@
+/* compact: Source Sans 3, black and white, dense, section names in a left gutter. Fits more on a page. */
+@font-face { font-family: "Source Sans 3"; font-weight: 400; src: url(fonts/source-sans-3-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 400; font-style: italic; src: url(fonts/source-sans-3-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 600; src: url(fonts/source-sans-3-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 700; src: url(fonts/source-sans-3-latin-700-normal.woff2) format("woff2"); }
+
+:root { --ink: #000; --text: #1a1a1a; --muted: #555; --rule: #c8c8c8; }
+* { box-sizing: border-box; }
+html { font-size: 9.25pt; }
+body { margin: 0; color: var(--text); background: #fff; font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif; line-height: 1.28; }
+.resume { max-width: 8.5in; margin: 0 auto; padding: 0.5in; }
+a { color: inherit; text-decoration: none; }
+p { margin: 0; }
+
+/* Header on one band: name and headline left, contact stacked right, rule underneath */
+header {
+  display: grid; grid-template-columns: 1fr auto; column-gap: 14pt; align-items: end;
+  border-bottom: 1.25pt solid var(--ink); padding-bottom: 5pt; margin-bottom: 2pt;
+}
+h1 { grid-column: 1; font-size: 20pt; font-weight: 700; color: var(--ink); margin: 0; line-height: 1.05; }
+.label { grid-column: 1; font-size: 10.5pt; color: var(--muted); margin-top: 1pt; }
+.contact { grid-column: 2; grid-row: 1 / span 2; list-style: none; padding: 0; margin: 0; text-align: right; font-size: 8.5pt; color: var(--muted); line-height: 1.3; }
+.contact li { display: block; }
+.contact .sep { display: none; }
+
+/* Each section: its name in a narrow left gutter, content to the right */
+section { display: grid; grid-template-columns: 0.9in 1fr; column-gap: 10pt; padding-top: 5pt; margin-top: 5pt; border-top: 0.5pt solid var(--rule); }
+header + section { border-top: 0; }
+section > h2 { grid-column: 1; grid-row: 1 / span 50; margin: 0; padding-top: 1pt; font-size: 8pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+section > :not(h2) { grid-column: 2; }
+
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { margin: 0 0 1pt; }
+.skills strong { color: var(--ink); font-weight: 600; }
+
+.entry { margin-bottom: 4pt; break-inside: avoid; }
+.entry:has(.role) { break-inside: auto; }
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; }
+h3 { font-size: 9.75pt; font-weight: 700; color: var(--ink); margin: 0; }
+.org { font-weight: 400; color: var(--text); }
+.org-sep { margin: 0 0.35em; color: var(--muted); }
+.dates { color: var(--muted); font-size: 8.5pt; white-space: nowrap; }
+.sub { color: var(--muted); }
+.entry > p { margin: 1pt 0; }
+.keywords { color: var(--muted); font-size: 8.5pt; }
+
+.role { margin-top: 2pt; break-inside: avoid; }
+h4 { font-size: 9.25pt; font-weight: 600; font-style: italic; color: var(--text); margin: 0; }
+
+.entry ul { margin: 1pt 0 0; padding-left: 10pt; list-style: none; }
+.entry li { margin: 0.5pt 0; position: relative; }
+.entry li::before { content: "•"; position: absolute; left: -8pt; color: var(--muted); }
+
+@page { size: Letter; margin: 0.5in; }
+@media print { .resume { max-width: none; padding: 0; } }

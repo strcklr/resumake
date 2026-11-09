@@ -1,4 +1,4 @@
-"""Command line interface: `resumake build`, `resumake validate` and `resumake schema`."""
+"""Command line interface: `resumake build`, `validate`, `themes` and `schema`."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from resumake import themes
 from resumake.context import build_context
 from resumake.errors import ResumeError
 from resumake.loader import discover, load_resume
@@ -26,11 +27,13 @@ def _formats(value: str) -> list[str]:
     return names
 
 
-def build(targets: list[str], formats: list[str], out_dir: Path) -> list[Path]:
+def build(targets: list[str], formats: list[str], out_dir: Path, theme: str | None = None) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for variant in discover(targets):
         data = load_resume(variant.path)
+        if theme:  # --theme overrides the file's layout.theme for this build
+            data["layout"] = {**data.get("layout", {}), "theme": theme}
         ctx = build_context(data)
         name = data.get("layout", {}).get("output_name", variant.name)
         for fmt in formats:
@@ -54,6 +57,15 @@ def validate(targets: list[str]) -> int:
     return 1 if failures else 0
 
 
+def list_themes() -> int:
+    for name in themes.available():
+        t = themes.load(name)
+        default = " (default)" if name == themes.DEFAULT else ""
+        accent = f" Default accent {t.accent}; set layout.accent to change it." if t.accent else ""
+        print(f"  {name:<10}{t.description}{accent}{default}")
+    return 0
+
+
 def schema_json() -> str:
     """The resume JSON Schema, as written to web/src/lib/schema.json."""
     return json.dumps(SCHEMA, indent=2, ensure_ascii=False) + "\n"
@@ -68,9 +80,13 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("-f", "--format", type=_formats, default=list(RENDERERS),
                    help=f"comma-separated formats: {', '.join(RENDERERS)} or all (default: all)")
     b.add_argument("-o", "--out", type=Path, default=Path("dist"), help="output directory (default: dist/)")
+    b.add_argument("-t", "--theme", choices=themes.available(),
+                   help="theme for this build, overriding the files' layout.theme (see `resumake themes`)")
 
     v = sub.add_parser("validate", help="check resumes against the schema")
     v.add_argument("targets", nargs="*", default=["resumes"])
+
+    sub.add_parser("themes", help="list the available themes")
 
     s = sub.add_parser("schema", help="print the resume JSON Schema (used by the web editor)")
     s.add_argument("-o", "--out", type=Path, help="write to this file instead of stdout")
@@ -83,8 +99,10 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 sys.stdout.write(schema_json())
             return 0
+        if args.command == "themes":
+            return list_themes()
         if args.command == "build":
-            build(args.targets, args.format, args.out)
+            build(args.targets, args.format, args.out, args.theme)
             return 0
         return validate(args.targets)
     except ResumeError as exc:
