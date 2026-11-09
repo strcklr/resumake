@@ -137,6 +137,10 @@ function simplify(errors: ErrorObject[]): ErrorObject[] {
 
 function describe(err: ErrorObject): string {
   const p = err.params as Record<string, unknown>;
+  // An unquoted colour (`accent: #0f766e`) is a YAML comment, so the field reads as empty.
+  if (err.instancePath === '/layout/accent' && (err.keyword === 'type' || err.keyword === 'pattern')) {
+    return 'must be a colour in quotes, like "#0f766e" (without quotes, # starts a comment)';
+  }
   switch (err.keyword) {
     case 'required':
       return `'${p.missingProperty}' is required`;

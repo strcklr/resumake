@@ -23,6 +23,8 @@
     type Source,
   } from './lib/files';
   import { diffFiles, type LoadedRepo } from './lib/github';
+  import { hasSyntaxErrors, ownLayoutField, setLayoutField, type LayoutKey } from './lib/layout';
+  import { effectiveLook } from './lib/themes';
   import { PreviewClient } from './lib/preview';
   import { formatPath } from './lib/validate';
   import {
@@ -89,6 +91,29 @@
   $effect(() => {
     if ((tab === 'inherited' && !inherited.length) || (tab === 'graph' && !extendedBy.length)) tab = 'preview';
   });
+  // The theme picker: shows what the resolved resume uses, and writes changes into the open file.
+  const look = $derived.by(() => {
+    if (partial || !resolved?.data) return null;
+    const { theme, accent } = effectiveLook(resolved.data);
+    return {
+      theme,
+      accent,
+      ownAccent: ownLayoutField(files[active], 'accent') !== undefined,
+      file: active,
+      setTheme: (name: string) => setLayout('theme', name),
+      setAccent: (hex: string | null) => setLayout('accent', hex),
+    };
+  });
+
+  /** Write a `layout:` field into the open file, as an edit you can undo. */
+  function setLayout(key: LayoutKey, value: string | null) {
+    if (!editor) return;
+    const text = editor.view.state.doc.toString();
+    const change = setLayoutField(text, key, value);
+    if (change) editor.view.dispatch({ changes: change, userEvent: 'input.layout' });
+    else if (hasSyntaxErrors(text)) alert(`Fix the YAML errors in ${active} first.`);
+  }
+
   const notice = $derived(
     partial ? "This is a shared fragment: other files can extend it, but it isn't built on its own." : null,
   );
@@ -452,6 +477,7 @@
         {notice}
         fileName={`${outputName(active)}.yml`}
         save={source?.base ? { changes: unsaved, repo: source.repo, onSave: () => (tab = 'github') } : null}
+        {look}
       />
     </div>
 

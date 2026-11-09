@@ -5,6 +5,7 @@
  * and wouldn't parse: the parent of a key is the nearest line above with a smaller indent.
  */
 import schema from './schema.json';
+import { THEMES } from './themes';
 
 interface SchemaNode {
   type?: string | string[];
@@ -12,6 +13,7 @@ interface SchemaNode {
   items?: SchemaNode;
   enum?: string[];
   required?: string[];
+  pattern?: string;
 }
 
 export interface Suggestion {
@@ -20,7 +22,12 @@ export interface Suggestion {
   detail: string;
   /** Text to insert: `name: ` for a field, the bare value for an enum. */
   apply: string;
+  /** A field whose values can be suggested too, so suggestions reopen once it's inserted. */
+  hasValues?: boolean;
 }
+
+/** A colour field: schema pattern `^#[0-9A-Fa-f]{6}$`. Suggested from the themes' defaults. */
+const COLOUR = '^#[0-9A-Fa-f]{6}$';
 
 const ROOT = schema as SchemaNode;
 const KEY_LINE = /^(\s*)(- )?([A-Za-z_][\w-]*)\s*:/;
@@ -40,25 +47,7 @@ export function suggest(lines: string[], lineIndex: number): Suggestion[] | null
   const ctx = completionContext(lines[lineIndex]);
   if (!ctx) return null;
 
-  // Walk up to collect the chain of parent keys.
-  const path: string[] = [];
-  let indent = ctx.indent;
-  for (let i = lineIndex - 1; i >= 0 && indent > 0; i--) {
-    const m = KEY_LINE.exec(lines[i]);
-    if (!m) continue;
-    const keyIndent = m[1].length + (m[2] ? 2 : 0);
-    if (keyIndent < indent) {
-      path.unshift(m[3]);
-      indent = keyIndent;
-    }
-  }
-
-  let node: SchemaNode | undefined = ROOT;
-  for (const key of path) {
-    node = descend(node)?.properties?.[key];
-    if (!node) return [];
-  }
-  const target = descend(node);
+  const target = descend(nodeAt(parentPath(lines, lineIndex, ctx.indent)));
   if (!target) return [];
 
   if (target.enum) {
@@ -71,7 +60,64 @@ export function suggest(lines: string[], lineIndex: number): Suggestion[] | null
       label: key,
       detail: (target.required?.includes(key) ? 'required · ' : '') + kind(child),
       apply: `${key}: `,
+      hasValues: Boolean(child.enum || child.pattern === COLOUR),
     }));
+}
+
+/**
+ * Suggestions for a field's value, with the cursor after `key: ` on `lines[lineIndex]` (the text up
+ * to the cursor): choices like `theme: modern`, or colours for `accent:`. `start` is where the
+ * value being typed begins in the line, so a partly typed `"#0f` is replaced whole.
+ */
+export function suggestValue(lines: string[], lineIndex: number): { start: number; options: Suggestion[] } | null {
+  const m = /^(\s*)(- )?([A-Za-z_][\w-]*):[ \t]+(\S*)$/.exec(lines[lineIndex]);
+  if (!m) return null;
+  const indent = m[1].length + (m[2] ? 2 : 0);
+  const parent = descend(nodeAt(parentPath(lines, lineIndex, indent)));
+  const node = parent?.properties?.[m[3]];
+  if (!node) return null;
+  const start = lines[lineIndex].length - m[4].length;
+  if (node.enum) {
+    const titles = new Map(THEMES.map((t) => [t.name, t.title]));
+    const isTheme = m[3] === 'theme';
+    return {
+      start,
+      options: node.enum.map((v) => ({ label: v, detail: isTheme ? `theme · ${titles.get(v) ?? v}` : 'choice', apply: v })),
+    };
+  }
+  if (node.pattern === COLOUR) {
+    const options = THEMES.filter((t) => t.accent).map((t) => ({
+      label: JSON.stringify(t.accent),
+      detail: `${t.title}'s colour; any "#rrggbb" works, in quotes`,
+      apply: JSON.stringify(t.accent),
+    }));
+    return options.length ? { start, options } : null;
+  }
+  return null;
+}
+
+/** The chain of keys a line at `indent` sits under: the nearest lines above with smaller indents. */
+function parentPath(lines: string[], lineIndex: number, indent: number): string[] {
+  const path: string[] = [];
+  for (let i = lineIndex - 1; i >= 0 && indent > 0; i--) {
+    const m = KEY_LINE.exec(lines[i]);
+    if (!m) continue;
+    const keyIndent = m[1].length + (m[2] ? 2 : 0);
+    if (keyIndent < indent) {
+      path.unshift(m[3]);
+      indent = keyIndent;
+    }
+  }
+  return path;
+}
+
+function nodeAt(path: string[]): SchemaNode | undefined {
+  let node: SchemaNode | undefined = ROOT;
+  for (const key of path) {
+    node = descend(node)?.properties?.[key];
+    if (!node) return undefined;
+  }
+  return node;
 }
 
 /** Lists are transparent: a key under `work:` belongs to a work entry. */

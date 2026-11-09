@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import sample from '../../../resumes/default.yml?raw';
 import tailored from '../../../resumes/tailored/example-platform.yml?raw';
-import { suggest } from './complete';
+import { suggest, suggestValue } from './complete';
 import { validate } from './validate';
 
 const lineOf = (text: string, needle: string) => text.split('\n').findIndex((l) => l.includes(needle)) + 1;
@@ -58,6 +58,12 @@ describe('validate', () => {
     expect(validate('').problems.map((p) => p.message)).toEqual(["'basics' is required"]);
   });
 
+  it('explains an unquoted accent colour', () => {
+    const [problem] = validate('basics:\n  name: A\nlayout:\n  theme: modern\n  accent: #4338ca\n').problems;
+    expect(problem.path).toBe('layout.accent');
+    expect(problem.message).toMatch(/in quotes/);
+  });
+
   it('rejects a top level that is not a mapping', () => {
     expect(validate('- just\n- a list\n').problems[0].message).toMatch(/top level must be a mapping/);
   });
@@ -92,5 +98,37 @@ describe('suggest', () => {
 
   it('stays quiet after a colon', () => {
     expect(at('basics:\n  name: Jo')).toBeNull();
+  });
+
+  it('marks theme and accent as fields with suggested values', () => {
+    const fields = suggest(['layout:', '  '], 1)!;
+    expect(fields.find((f) => f.label === 'theme')?.hasValues).toBe(true);
+    expect(fields.find((f) => f.label === 'accent')?.hasValues).toBe(true);
+    expect(fields.find((f) => f.label === 'output_name')?.hasValues).toBe(false);
+  });
+});
+
+describe('suggestValue', () => {
+  const at = (doc: string) => {
+    const lines = doc.split('\n');
+    return suggestValue(lines, lines.length - 1);
+  };
+
+  it('offers themes for layout.theme, with their titles', () => {
+    const out = at('layout:\n  theme: mo')!;
+    expect(out.options.map((o) => o.label)).toEqual(['classic', 'compact', 'modern']);
+    expect(out.options.find((o) => o.label === 'modern')?.detail).toMatch(/Modern/);
+    expect(out.start).toBe('  theme: '.length);
+  });
+
+  it('offers quoted colours for layout.accent, replacing a partly typed one', () => {
+    const out = at('layout:\n  accent: "#0f')!;
+    expect(out.options.map((o) => o.apply)).toContain('"#0f766e"');
+    expect(out.start).toBe('  accent: '.length);
+  });
+
+  it('stays quiet for free-text fields and other parents', () => {
+    expect(at('basics:\n  name: Jo')).toBeNull();
+    expect(at('basics:\n  theme: x')).toBeNull();
   });
 });

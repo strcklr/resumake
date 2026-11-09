@@ -105,8 +105,16 @@ has errors, the last valid version stays on screen, dimmed.
   that the browser cache serves it.
 - **Page breaks:** dashed lines mark where each printed Letter page should start, from the stylesheet's
   0.75in margins. They're an estimate, but on a 3-page test resume they matched WeasyPrint's breaks.
-- **Fonts:** the bundled Gelasio fonts are inlined as data URLs so the preview looks like the PDF on
-  machines without Georgia.
+- **Themes:** every theme's stylesheet is loaded, so `layout.theme` and `layout.accent` work as in the
+  CLI. The **Theme** picker and colour picker above the preview write those fields into the open file
+  as an ordinary edit (`src/lib/layout.ts`: a small text change, so comments and formatting stay, and
+  undo works). A tailored file gets its own override.
+- **Fonts:** each theme's bundled fonts are separate files, fetched the first time a resume uses that
+  theme and inlined into the rendered page as data URLs, so the preview looks like the PDF and a
+  downloaded copy needs no other files.
+- **Same output as the CLI:** a test renders the sample in every theme both here (Pyodide) and with
+  the installed `resumake`, and checks the HTML matches. CI installs resumake for it; locally it's
+  skipped if `python3 -c "import resumake"` fails.
 - **Print / Save PDF** opens the rendered HTML in a new tab with the print dialog, for a quick PDF
   without GitHub. **Download HTML** saves the same file `resumake build -f html` would write (with the
   fonts inlined).
@@ -118,7 +126,9 @@ has errors, the last valid version stays on screen, dimmed.
 | `src/lib/validate.ts` | Parses YAML (keeping source positions), validates with Ajv, maps each error to a line |
 | `src/lib/workspace.ts` | Several files at once: resolves `extends:`, validates, maps problems to files, lists inherited fields |
 | `src/lib/files.ts` | The browser's file store: saving, opening a folder, zipping, naming new files |
-| `src/lib/complete.ts` | Field and section-name suggestions from the schema |
+| `src/lib/complete.ts` | Field, section-name and value (theme, accent colour) suggestions from the schema |
+| `src/lib/layout.ts` | Sets or removes a `layout:` field (theme, accent) in the YAML as a small text edit |
+| `src/lib/themes.ts` | The themes' titles and default accents, from each theme's `theme.json` |
 | `src/lib/editor.ts` | CodeMirror setup: YAML mode, lint, autocomplete |
 | `src/lib/pyrender.ts` | Loads resumake into Pyodide and renders HTML (shared by the worker and tests) |
 | `src/lib/preview.worker.ts`, `preview.ts` | The preview worker and the page's handle on it |

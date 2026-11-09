@@ -26,6 +26,11 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      # The CLI, so the tests can check the preview renders exactly what `resumake build` does.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ..
       - run: npm run check
       - run: npm test
       - run: npm run build
