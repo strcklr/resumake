@@ -23,9 +23,13 @@ import {
   TOP_LEVEL_MESSAGE,
   type ParsedFile,
   type Problem,
+  type SchemaError,
   type Segment,
   type Severity,
 } from './validate';
+import { THEMES } from './themes';
+
+const DEFAULT_THEME_NAMES = THEMES.map((t) => t.name);
 
 /** Workspace files by path: relative, `/`-separated, e.g. `resumes/tailored/acme.yml`. */
 export type Files = Record<string, string>;
@@ -58,7 +62,14 @@ type Annotated = { value: unknown; origin: Origin };
 export class Workspace {
   private parsed = new Map<string, ParsedFile>();
 
-  constructor(private readonly files: Files) {}
+  /**
+   * `themeNames`: the themes `layout.theme` may name (built-in and the repo's own); the schema
+   * can't list a repo's themes, so this check is separate, as in the CLI's loader.
+   */
+  constructor(
+    private readonly files: Files,
+    private readonly themeNames: string[] = DEFAULT_THEME_NAMES,
+  ) {}
 
   /** Resolve and validate one file. Shared fragments (a path part starting with `_`) skip schema checks, as in the CLI. */
   resolve(entry: string): Resolved {
@@ -76,6 +87,17 @@ export class Workspace {
         const file = originFile(loaded.origin, err.fieldSegments ?? err.segments);
         const parsed = this.parse(file)!;
         problems.push({ ...problemAt(parsed, 'error', locateError(parsed, err), formatPath(err.segments), err.message), file });
+      }
+      const theme = (result.data.layout as { theme?: unknown } | undefined)?.theme;
+      if (typeof theme === 'string' && !problems.some((p) => p.path === 'layout.theme') && !this.themeNames.includes(theme)) {
+        const err: SchemaError = {
+          segments: ['layout', 'theme'],
+          keyword: 'theme',
+          message: `unknown theme '${theme}' (choose from ${this.themeNames.join(', ')})`,
+        };
+        const file = originFile(loaded.origin, err.segments);
+        const parsed = this.parse(file)!;
+        problems.push({ ...problemAt(parsed, 'error', locateError(parsed, err), 'layout.theme', err.message), file });
       }
     }
     return finish(result);

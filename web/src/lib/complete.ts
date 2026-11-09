@@ -5,7 +5,7 @@
  * and wouldn't parse: the parent of a key is the nearest line above with a smaller indent.
  */
 import schema from './schema.json';
-import { THEMES } from './themes';
+import { THEMES, type ThemeInfo } from './themes';
 
 interface SchemaNode {
   type?: string | string[];
@@ -47,7 +47,8 @@ export function suggest(lines: string[], lineIndex: number): Suggestion[] | null
   const ctx = completionContext(lines[lineIndex]);
   if (!ctx) return null;
 
-  const target = descend(nodeAt(parentPath(lines, lineIndex, ctx.indent)));
+  const path = parentPath(lines, lineIndex, ctx.indent);
+  const target = descend(nodeAt(path));
   if (!target) return [];
 
   if (target.enum) {
@@ -60,7 +61,7 @@ export function suggest(lines: string[], lineIndex: number): Suggestion[] | null
       label: key,
       detail: (target.required?.includes(key) ? 'required · ' : '') + kind(child),
       apply: `${key}: `,
-      hasValues: Boolean(child.enum || child.pattern === COLOUR),
+      hasValues: Boolean(child.enum || child.pattern === COLOUR || isThemeField(path, key)),
     }));
 }
 
@@ -69,24 +70,30 @@ export function suggest(lines: string[], lineIndex: number): Suggestion[] | null
  * to the cursor): choices like `theme: modern`, or colours for `accent:`. `start` is where the
  * value being typed begins in the line, so a partly typed `"#0f` is replaced whole.
  */
-export function suggestValue(lines: string[], lineIndex: number): { start: number; options: Suggestion[] } | null {
+export function suggestValue(
+  lines: string[],
+  lineIndex: number,
+  themes: ThemeInfo[] = THEMES,
+): { start: number; options: Suggestion[] } | null {
   const m = /^(\s*)(- )?([A-Za-z_][\w-]*):[ \t]+(\S*)$/.exec(lines[lineIndex]);
   if (!m) return null;
   const indent = m[1].length + (m[2] ? 2 : 0);
-  const parent = descend(nodeAt(parentPath(lines, lineIndex, indent)));
-  const node = parent?.properties?.[m[3]];
+  const path = parentPath(lines, lineIndex, indent);
+  const node = descend(nodeAt(path))?.properties?.[m[3]];
   if (!node) return null;
   const start = lines[lineIndex].length - m[4].length;
-  if (node.enum) {
-    const titles = new Map(THEMES.map((t) => [t.name, t.title]));
-    const isTheme = m[3] === 'theme';
+  // Themes include the repo's own, which the schema can't list.
+  if (isThemeField(path, m[3])) {
     return {
       start,
-      options: node.enum.map((v) => ({ label: v, detail: isTheme ? `theme · ${titles.get(v) ?? v}` : 'choice', apply: v })),
+      options: themes.map((t) => ({ label: t.name, detail: `theme · ${t.title}${t.custom ? ' (your repo)' : ''}`, apply: t.name })),
     };
   }
+  if (node.enum) {
+    return { start, options: node.enum.map((v) => ({ label: v, detail: 'choice', apply: v })) };
+  }
   if (node.pattern === COLOUR) {
-    const options = THEMES.filter((t) => t.accent).map((t) => ({
+    const options = themes.filter((t) => t.accent).map((t) => ({
       label: JSON.stringify(t.accent),
       detail: `${t.title}'s colour; any "#rrggbb" works, in quotes`,
       apply: JSON.stringify(t.accent),
@@ -94,6 +101,10 @@ export function suggestValue(lines: string[], lineIndex: number): { start: numbe
     return options.length ? { start, options } : null;
   }
   return null;
+}
+
+function isThemeField(path: string[], key: string): boolean {
+  return path.length === 1 && path[0] === 'layout' && key === 'theme';
 }
 
 /** The chain of keys a line at `indent` sits under: the nearest lines above with smaller indents. */

@@ -90,6 +90,22 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
     ready.catch((err) => send({ type: 'failed', error: pythonError(err) }));
     return;
   }
+  if (msg.type === 'themes') {
+    const files = msg.files;
+    // Applied in order with renders: a render after this message sees these themes.
+    if (!ready) return;
+    const next = ready.then((render) => {
+      try {
+        render.setRepoThemes(files);
+      } catch {
+        /* a broken theme shows up as a render error when it's used */
+      }
+      return render;
+    });
+    next.catch(() => {}); // a boot failure is already reported
+    ready = next;
+    return;
+  }
   if (msg.type === 'gallery') pendingGallery = msg;
   else pending = msg;
   if (busy || !ready) return;

@@ -88,16 +88,29 @@ export async function inlineFonts(html: string, load: (theme: string, file: stri
   return html.replace(FONT_REF, (ref) => urls.get(ref) ?? ref);
 }
 
+/** Where a resumes repo's own themes (its `themes/` folder) are written. */
+const REPO_THEMES = '/repo-themes';
+
 const BOOT = `
 import json
+from pathlib import Path
+from resumake import themes
 from resumake.context import build_context
 from resumake.renderers.html import render_string
 
-def render(data_json):
-    return render_string(build_context(json.loads(data_json)))
+def render(data_json, with_repo_themes):
+    dirs = (Path(${JSON.stringify(REPO_THEMES)}),) if with_repo_themes else ()
+    return render_string(build_context(json.loads(data_json), dirs))
+
+def forget_themes():
+    themes._load.cache_clear()
 `;
 
-export type Render = (data: unknown) => string;
+export interface Render {
+  (data: unknown): string;
+  /** Replace the repo's own themes (see ThemeFiles); renders after this use them. */
+  setRepoThemes(files: Record<string, string>): void;
+}
 
 /**
  * Install Jinja2/MarkupSafe from wheel bytes and resumake from source, and return a renderer.
@@ -113,7 +126,58 @@ export function installResumake(py: PyodideAPI, wheels: ArrayBuffer[]): Render {
   py.runPython(`import sys\nsys.path.insert(0, ${JSON.stringify(ROOT)})`);
   py.runPython(BOOT);
   const render = py.globals.get('render');
-  return (data) => render(JSON.stringify(data)) as string;
+  const forget = py.globals.get('forget_themes');
+  let hasRepoThemes = false;
+  const out = ((data: unknown) => render(JSON.stringify(data), hasRepoThemes) as string) as Render;
+  out.setRepoThemes = (files) => {
+    rmTree(py, REPO_THEMES);
+    for (const [path, text] of Object.entries(repoThemeFiles(files))) {
+      const full = `${REPO_THEMES}/${path}`;
+      py.FS.mkdirTree(full.slice(0, full.lastIndexOf('/')));
+      py.FS.writeFile(full, text);
+    }
+    hasRepoThemes = Object.keys(files).length > 0;
+    forget();
+  };
+  return out;
+}
+
+/**
+ * A repo's theme files as Python will read them: fonts aren't written (their `data:` URLs go
+ * straight into the stylesheet in place of `url(fonts/...)`, so the rendered page is self-contained).
+ */
+export function repoThemeFiles(files: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [path, text] of Object.entries(files)) {
+    if (/\/fonts\//.test(path)) continue;
+    const theme = /^([\w-]+)\/style\.css$/.exec(path)?.[1];
+    out[path] = theme
+      ? text.replace(/url\((["']?)fonts\/([\w.-]+)\1\)/g, (match, _q, name: string) => {
+          const font = files[`${theme}/fonts/${name}`];
+          return font ? `url("${font}")` : match;
+        })
+      : text;
+  }
+  return out;
+}
+
+function rmTree(py: PyodideAPI, dir: string) {
+  const fs = py.FS as unknown as {
+    analyzePath(p: string): { exists: boolean };
+    readdir(p: string): string[];
+    stat(p: string): { mode: number };
+    isDir(mode: number): boolean;
+    unlink(p: string): void;
+    rmdir(p: string): void;
+  };
+  if (!fs.analyzePath(dir).exists) return;
+  for (const name of fs.readdir(dir)) {
+    if (name === '.' || name === '..') continue;
+    const path = `${dir}/${name}`;
+    if (fs.isDir(fs.stat(path).mode)) rmTree(py, path);
+    else fs.unlink(path);
+  }
+  fs.rmdir(dir);
 }
 
 /** Turn a Python exception into its last line ("KeyError: 'name'"), which is the useful part. */

@@ -109,7 +109,7 @@ def _body(doc, text, before=2, after=2):
 
 def _load_style(ctx: dict) -> dict:
     """The theme's docx settings, with colours as RGBColor and the accent filled in."""
-    settings = themes.load(ctx["theme"]).docx
+    settings = themes.for_context(ctx).docx
     colors = {k: _rgb(v) for k, v in settings["colors"].items()}
     colors["accent"] = _rgb(ctx["accent"]) if ctx.get("accent") else colors["ink"]
     return {**settings, "colors": colors, "body": Pt(settings["body_size"])}

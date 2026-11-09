@@ -162,8 +162,10 @@ SCHEMA = {
                 },
                 "titles": {"type": "object", "additionalProperties": _str},
                 "output_name": _str,
-                # How the resume looks: a folder in src/resumake/themes/. Defaults to classic.
-                "theme": {"enum": themes.available()},
+                # How the resume looks: a built-in theme (src/resumake/themes/) or one in the resumes
+                # repo's themes/ folder. Defaults to classic. The loader checks the theme exists,
+                # since a repo's own themes aren't known here.
+                "theme": {"type": "string", "pattern": themes.NAME.pattern},
                 # Accent colour for themes that use one (e.g. modern); others ignore it.
                 "accent": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
             },

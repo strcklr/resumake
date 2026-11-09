@@ -11,5 +11,5 @@ def render(ctx: dict, out: Path) -> None:
     from weasyprint import HTML
 
     # base_url lets the theme's stylesheet find its bundled fonts (url(fonts/...)).
-    with as_file(themes.load(ctx["theme"]).folder) as folder:
+    with as_file(themes.for_context(ctx).folder) as folder:
         HTML(string=html.render_string(ctx), base_url=f"{folder}/").write_pdf(out)

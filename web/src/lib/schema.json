@@ -387,11 +387,8 @@
           "type": "string"
         },
         "theme": {
-          "enum": [
-            "classic",
-            "compact",
-            "modern"
-          ]
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][\\w-]*$"
         },
         "accent": {
           "type": "string",

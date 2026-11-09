@@ -14,17 +14,17 @@ def read(name: str) -> str:
     return (_TEMPLATES / name).read_text(encoding="utf-8")
 
 
-def read_theme(theme: str, name: str) -> str:
+def read_theme(theme: themes.Theme, name: str) -> str:
     """A theme's file, e.g. its style.css."""
-    return (themes.load(theme).folder / name).read_text(encoding="utf-8")
+    return (theme.folder / name).read_text(encoding="utf-8")
 
 
-def environment(autoescape: bool, theme: str | None = None) -> Environment:
+def environment(autoescape: bool, theme: themes.Theme | None = None) -> Environment:
     """Templates come from the theme's folder when it has its own, otherwise from templates/."""
 
     def load(name: str) -> str:
         if theme is not None:
-            own = themes.load(theme).folder / name
+            own = theme.folder / name
             if own.is_file():
                 return own.read_text(encoding="utf-8")
         return read(name)

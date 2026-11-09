@@ -1,10 +1,11 @@
 from pathlib import Path
 
+from resumake import themes
 from resumake.renderers import _templates
 
 
 def render_string(ctx: dict) -> str:
-    theme = ctx["theme"]
+    theme = themes.for_context(ctx)
     template = _templates.environment(autoescape=True, theme=theme).get_template("resume.html.j2")
     return template.render(**ctx, css=_templates.read_theme(theme, "style.css"))
 

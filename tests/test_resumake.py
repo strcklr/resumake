@@ -285,3 +285,65 @@ def test_cli_lists_themes(capsys):
     assert main(["themes"]) == 0
     out = capsys.readouterr().out
     assert "classic" in out and "modern" in out and "compact" in out and "(default)" in out
+
+
+# --- a resumes repo's own themes ---------------------------------------------
+
+def _repo(tmp_path: Path, monkeypatch) -> Path:
+    """A resumes repo in tmp_path, with a theme `mine` copied from modern by `resumake themes new`."""
+    (tmp_path / ".git").mkdir()
+    monkeypatch.chdir(tmp_path)
+    assert main(["themes", "new", "mine", "--from", "modern"]) == 0
+    return tmp_path
+
+
+def test_themes_new_copies_a_theme_into_the_repo(tmp_path, monkeypatch, capsys):
+    repo = _repo(tmp_path, monkeypatch)
+    folder = repo / "themes" / "mine"
+    assert (folder / "style.css").read_text() == (themes.BUILT_IN / "modern" / "style.css").read_text()
+    assert any((folder / "fonts").iterdir())
+    meta = (folder / "theme.json").read_text()
+    assert '"title": "Mine"' in meta and "Based on Modern" in meta
+    assert main(["themes", "new", "mine"]) == 1  # already exists
+    assert "already a theme" in capsys.readouterr().err
+
+
+def test_a_repo_theme_is_found_from_a_resume_in_a_subfolder(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
+    (repo / "themes" / "mine" / "style.css").write_text("body { color: rebeccapurple; }")
+    resume = write(repo / "resumes" / "tailored" / "r.yml", {"basics": {"name": "A"}, "layout": {"theme": "mine"}})
+    assert main(["build", str(resume), "-f", "html,docx,pdf", "-o", str(repo / "dist")]) == 0
+    assert "rebeccapurple" in (repo / "dist" / "r.html").read_text()
+    assert (repo / "dist" / "r.pdf").read_bytes().startswith(b"%PDF")
+
+
+def test_a_repo_theme_can_leave_out_word_settings(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
+    (repo / "themes" / "mine" / "theme.json").write_text('{"docx": {"font": "Verdana"}}')
+    t = themes.load("mine", (repo / "themes",))
+    assert (t.title, t.custom, t.docx["font"]) == ("mine", True, "Verdana")
+    assert t.docx["colors"] == themes.load("classic").docx["colors"]  # the rest from classic
+
+
+def test_unknown_theme_lists_the_repo_themes(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
+    resume = write(repo / "resumes" / "r.yml", {"basics": {"name": "A"}, "layout": {"theme": "fancy"}})
+    with pytest.raises(ResumeError, match=r"layout.theme: unknown theme 'fancy' \(choose from classic, compact, mine, modern\)"):
+        load_resume(resume)
+    assert main(["build", str(resume), "-t", "nope"]) == 1
+
+
+def test_themes_lists_the_repo_themes(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path, monkeypatch)
+    capsys.readouterr()
+    assert main(["themes"]) == 0
+    line = next(l for l in capsys.readouterr().out.splitlines() if l.strip().startswith("mine"))
+    assert "Based on Modern" in line and "themes/mine" in line
+
+
+def test_theme_search_stops_at_the_repo_root(tmp_path):
+    (tmp_path / "themes" / "x").mkdir(parents=True)
+    (tmp_path / "themes" / "x" / "theme.json").write_text("{}")
+    (tmp_path / "inner" / ".git").mkdir(parents=True)
+    assert themes.find_dir(tmp_path / "inner" / "resumes") is None
+    assert themes.find_dir(tmp_path / "resumes") == tmp_path / "themes"

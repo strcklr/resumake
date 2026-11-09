@@ -9,6 +9,7 @@
  *
  * Configuration comes from the build (see web/README.md); without it, sign-in is simply unavailable.
  */
+import { isThemeFile, type ThemeFiles } from './themes';
 import type { Files } from './workspace';
 
 export interface GitHubConfig {
@@ -153,10 +154,14 @@ export interface LoadedRepo {
   /** The folder the files came from, e.g. `resumes`; workspace paths are relative to it. */
   folder: string;
   files: Files;
+  /** The repo's own themes, from its `themes/` folder (empty if it has none). */
+  themes: ThemeFiles;
 }
 
 /** The folder resumake builds from in a resumes repo. */
 export const RESUMES_FOLDER = 'resumes';
+/** Where a resumes repo keeps its own themes (resumake's themes.REPO_FOLDER). */
+export const THEMES_FOLDER = 'themes';
 
 export class GitHub {
   constructor(
@@ -181,7 +186,7 @@ export class GitHub {
     return repos.sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
-  /** Read every .yml/.yaml under `resumes/` on a branch. */
+  /** Read every .yml/.yaml under `resumes/` on a branch, and the repo's own themes under `themes/`. */
   async loadResumes(repo: Repo, branch = repo.defaultBranch): Promise<LoadedRepo> {
     const head = await this.get<{ commit: { sha: string; commit: { tree: { sha: string } } } }>(
       `/repos/${repo.fullName}/branches/${encodeURIComponent(branch)}`,
@@ -194,14 +199,35 @@ export class GitHub {
     if (!wanted.length) {
       throw new GitHubError(`${repo.fullName} has no .yml files in a ${RESUMES_FOLDER}/ folder on ${branch}.`, 404);
     }
-    const files: Files = {};
-    await Promise.all(
-      wanted.map(async (entry) => {
-        const blob = await this.get<{ content: string; encoding: string }>(`/repos/${repo.fullName}/git/blobs/${entry.sha}`);
-        files[entry.path.slice(prefix.length)] = decodeBlob(blob.content, blob.encoding);
-      }),
+    const themePrefix = `${THEMES_FOLDER}/`;
+    const themeEntries = tree.tree.filter(
+      (e) => e.type === 'blob' && e.path.startsWith(themePrefix) && isThemeFile(e.path.slice(themePrefix.length)),
     );
-    return { repo: repo.fullName, defaultBranch: repo.defaultBranch, branch, commit: head.commit.sha, folder: RESUMES_FOLDER, files };
+    const files: Files = {};
+    const themes: ThemeFiles = {};
+    const blob = (sha: string) => this.get<{ content: string; encoding: string }>(`/repos/${repo.fullName}/git/blobs/${sha}`);
+    await Promise.all([
+      ...wanted.map(async (entry) => {
+        const b = await blob(entry.sha);
+        files[entry.path.slice(prefix.length)] = decodeBlob(b.content, b.encoding);
+      }),
+      ...themeEntries.map(async (entry) => {
+        const b = await blob(entry.sha);
+        const rel = entry.path.slice(themePrefix.length);
+        themes[rel] = rel.endsWith('.woff2')
+          ? `data:font/woff2;base64,${b.encoding === 'base64' ? b.content.replace(/\s/g, '') : btoa(b.content)}`
+          : decodeBlob(b.content, b.encoding);
+      }),
+    ]);
+    return {
+      repo: repo.fullName,
+      defaultBranch: repo.defaultBranch,
+      branch,
+      commit: head.commit.sha,
+      folder: RESUMES_FOLDER,
+      files,
+      themes,
+    };
   }
 
   /** Branch names in a repo (the first 100). */
