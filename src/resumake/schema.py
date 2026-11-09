@@ -14,6 +14,8 @@ _dated = {
     "highlights": _str_list,
 }
 
+PROJECT_STATUSES = ["in progress", "deployed", "complete"]
+
 SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -78,7 +80,14 @@ SCHEMA = {
                 "type": "object",
                 "required": ["name"],
                 "additionalProperties": False,
-                "properties": {"name": _str, "url": _str, "keywords": _str_list, **_dated},
+                "properties": {
+                    "name": _str,
+                    "url": _str,
+                    # Without a status, a project with no `end` is in progress, else complete.
+                    "status": {"enum": PROJECT_STATUSES},
+                    "keywords": _str_list,
+                    **_dated,
+                },
             },
         },
         "education": {

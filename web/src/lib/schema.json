@@ -181,6 +181,13 @@
           "url": {
             "type": "string"
           },
+          "status": {
+            "enum": [
+              "in progress",
+              "deployed",
+              "complete"
+            ]
+          },
           "keywords": {
             "type": "array",
             "items": {

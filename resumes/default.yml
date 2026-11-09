@@ -59,6 +59,7 @@ work:
 projects:
   - name: resumake
     url: https://github.com/strcklr/resumake
+    status: deployed
     summary: Builds this resume from YAML into PDF, Word, HTML and Markdown.
     keywords: [Python, GitHub Actions]
 

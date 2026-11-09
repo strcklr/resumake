@@ -41,6 +41,11 @@ def date_range(item: dict) -> str:
     return start or end
 
 
+def project_status(item: dict) -> str:
+    """A project's status: its `status`, else "in progress" without an `end` and "complete" with one."""
+    return item.get("status") or ("complete" if "end" in item else "in progress")
+
+
 def _contact(basics: dict) -> list[dict]:
     items = []
     if basics.get("location"):
@@ -135,6 +140,7 @@ def _entry(key: str, item: dict) -> dict:
             title_url=item.get("url"),
             subtitle=_join(item.get("location"), ", ".join(item.get("keywords", []))),
             keywords=[],
+            status=project_status(item),
         )
     else:  # certifications
         entry.update(title=item["name"], title_url=item.get("url"), org=item.get("issuer", ""))

@@ -76,7 +76,7 @@ The full schema is in [`src/resumake/schema.py`](src/resumake/schema.py); see
 |---|---|
 | `basics` | `name` (required), `label`, `email`, `phone`, `location`, `website`, `summary`, `profiles[]` (`network`, `username`, `url`) |
 | `work[]` | `company`, `position` (required), `url`, `location`, `start`, `end`, `summary`, `highlights[]`, `keywords[]` |
-| `projects[]` | `name` (required), `url`, `start`, `end`, `summary`, `highlights[]`, `keywords[]` |
+| `projects[]` | `name` (required), `url`, `status` (`in progress`, `deployed` or `complete`), `start`, `end`, `summary`, `highlights[]`, `keywords[]` |
 | `education[]` | `institution` (required), `degree`, `area`, `score`, `location`, `start`, `end`, `highlights[]` |
 | `skills[]` | `name` (required), `keywords[]` |
 | `certifications[]` | `name` (required), `issuer`, `date`, `url` |
