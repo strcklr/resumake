@@ -443,7 +443,16 @@
 
     <!-- Kept mounted while hidden, so the preview stays rendered and its scroll position survives. -->
     <div class="tab-body flush" role="tabpanel" hidden={tab !== 'preview'}>
-      <Preview {html} {loading} {failed} error={renderError} {stale} {notice} fileName={`${outputName(active)}.yml`} />
+      <Preview
+        {html}
+        {loading}
+        {failed}
+        error={renderError}
+        {stale}
+        {notice}
+        fileName={`${outputName(active)}.yml`}
+        save={source?.base ? { changes: unsaved, repo: source.repo, onSave: () => (tab = 'github') } : null}
+      />
     </div>
 
     <div class="tab-body" role="tabpanel" hidden={tab !== 'problems'}>

@@ -21,8 +21,10 @@
     /** Shown instead of the preview (e.g. a shared fragment, which isn't built on its own). */
     notice: string | null;
     fileName: string;
+    /** When the files came from a linked GitHub repo: the number of unsaved changes, and how to save. */
+    save?: { changes: number; repo: string; onSave: () => void } | null;
   }
-  let { html, loading, failed, error, stale, notice, fileName }: Props = $props();
+  let { html, loading, failed, error, stale, notice, fileName, save = null }: Props = $props();
 
   const PX_PER_IN = 96;
   const PAGE_WIDTH = 8.5 * PX_PER_IN;
@@ -118,6 +120,17 @@
         Print / Save PDF
       </button>
       <button type="button" onclick={downloadHtml} disabled={!html || !!notice}>Download HTML</button>
+      {#if save}
+        <button
+          type="button"
+          class="primary"
+          onclick={save.onSave}
+          disabled={!save.changes}
+          title={save.changes ? `Save your changes to ${save.repo}` : 'No changes to save'}
+        >
+          Save to GitHub{#if save.changes}<span class="save-count">{save.changes}</span>{/if}
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -154,7 +167,11 @@
     padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
   }
   .preview-status { margin: 0; font-size: 0.8rem; flex: 1 1 14rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-  .preview-actions { display: flex; gap: 0.4rem; }
+  .preview-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .save-count {
+    display: inline-block; min-width: 1.2rem; margin-left: 0.35rem; padding: 0 0.3rem; border-radius: 999px;
+    font-size: 0.7rem; text-align: center; background: var(--accent-text); color: var(--accent);
+  }
   .preview-actions button { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
   .muted { color: var(--muted); }
   .bad { color: var(--bad); }
