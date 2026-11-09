@@ -1,5 +1,11 @@
 /** CodeMirror 6 set up for resume YAML: highlighting, schema lint and field autocomplete. */
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  startCompletion,
+  type Completion,
+  type CompletionContext,
+  type CompletionResult,
+} from '@codemirror/autocomplete';
 import { yaml } from '@codemirror/lang-yaml';
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import { EditorState, type Extension } from '@codemirror/state';
@@ -7,7 +13,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { indentWithTab } from '@codemirror/commands';
-import { suggest } from './complete';
+import { suggest, suggestValue, type Suggestion } from './complete';
 import type { Problem } from './validate';
 
 export interface EditorOptions {
@@ -35,15 +41,33 @@ function fieldCompletions(ctx: CompletionContext): CompletionResult | null {
   lines.push(before);
   for (let n = line.number + 1; n <= ctx.state.doc.lines; n++) lines.push(ctx.state.doc.line(n).text);
 
+  // A value after `key: `, e.g. `theme: mod` or `accent: "#0f`.
+  const value = suggestValue(lines, line.number - 1);
+  if (value) {
+    return {
+      from: line.from + value.start,
+      options: value.options.map((o) => ({ label: o.label, detail: o.detail, apply: o.apply, type: 'enum' })),
+      validFor: /^["#\w-]*$/,
+    };
+  }
+
   const options = suggest(lines, line.number - 1);
   if (!options?.length) return null;
   const word = /[\w-]*$/.exec(before)![0];
   if (!word && !ctx.explicit && !/(^\s*-\s|^\s+)$/.test(before)) return null;
-  return {
-    from: ctx.pos - word.length,
-    options: options.map((o) => ({ label: o.label, detail: o.detail, apply: o.apply, type: 'property' })),
-    validFor: /^[\w-]*$/,
-  };
+  return { from: ctx.pos - word.length, options: options.map(fieldOption), validFor: /^[\w-]*$/ };
+}
+
+/** A field name; for one with suggested values (`theme: `), the suggestions reopen for its value. */
+function fieldOption(o: Suggestion): Completion {
+  const option: Completion = { label: o.label, detail: o.detail, apply: o.apply, type: 'property' };
+  if (o.hasValues) {
+    option.apply = (view, _completion, from, to) => {
+      view.dispatch({ changes: { from, to, insert: o.apply }, selection: { anchor: from + o.apply.length } });
+      startCompletion(view);
+    };
+  }
+  return option;
 }
 
 export function createEditor(opts: EditorOptions): Editor {

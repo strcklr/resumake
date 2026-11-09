@@ -7,6 +7,7 @@
    * resume itself can't use that access. Links open in a new tab.
    */
   import { onMount } from 'svelte';
+  import { THEMES, type ThemeInfo } from './lib/themes';
 
   interface Props {
     html: string | null;
@@ -23,8 +24,21 @@
     fileName: string;
     /** When the files came from a linked GitHub repo: the number of unsaved changes, and how to save. */
     save?: { changes: number; repo: string; onSave: () => void } | null;
+    /** The open resume's theme and accent, and how to change them (written into its YAML). */
+    look?: Look | null;
   }
-  let { html, loading, failed, error, stale, notice, fileName, save = null }: Props = $props();
+  export interface Look {
+    theme: ThemeInfo;
+    /** The accent in use (`#rrggbb`), or null when the theme has no colour. */
+    accent: string | null;
+    /** The open file sets its own accent (so it can be reset to the theme's or inherited one). */
+    ownAccent: boolean;
+    /** The file the choice is written to. */
+    file: string;
+    setTheme: (name: string) => void;
+    setAccent: (hex: string | null) => void;
+  }
+  let { html, loading, failed, error, stale, notice, fileName, save = null, look = null }: Props = $props();
 
   const PX_PER_IN = 96;
   const PAGE_WIDTH = 8.5 * PX_PER_IN;
@@ -115,6 +129,27 @@
         <span class="muted">Rendered by resumake's own template, as in the PDF. Dashed lines show roughly where pages break.</span>
       {/if}
     </p>
+    {#if look && !notice}
+      <div class="look">
+        <label title={`${look.theme.description} Written to layout.theme in ${look.file}.`}>
+          <span>Theme</span>
+          <select value={look.theme.name} onchange={(e) => look.setTheme(e.currentTarget.value)}>
+            {#each THEMES as t (t.name)}<option value={t.name}>{t.title}</option>{/each}
+          </select>
+        </label>
+        {#if look.accent}
+          <label class="accent" title={`Accent colour. Written to layout.accent in ${look.file}.`}>
+            <span class="visually-hidden">Accent colour</span>
+            <input type="color" value={look.accent} onchange={(e) => look.setAccent(e.currentTarget.value)} />
+          </label>
+          {#if look.ownAccent}
+            <button type="button" class="reset" onclick={() => look.setAccent(null)} title={`Remove layout.accent from ${look.file}`}>
+              Reset colour
+            </button>
+          {/if}
+        {/if}
+      </div>
+    {/if}
     <div class="preview-actions">
       <button type="button" onclick={printPdf} disabled={!html || !!notice} title="Opens the resume in a new tab and the print dialog: choose Save as PDF">
         Print / Save PDF
@@ -166,8 +201,17 @@
     display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between;
     padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
   }
-  .preview-status { margin: 0; font-size: 0.8rem; flex: 1 1 14rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-  .preview-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .preview-status { margin: 0; font-size: 0.8rem; flex: 1 1 100%; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .preview-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-left: auto; }
+  .look { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; }
+  .look label { display: flex; align-items: center; gap: 0.35rem; }
+  .look select { font: inherit; padding: 0.25rem 0.4rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: inherit; }
+  .look input[type='color'] {
+    width: 1.9rem; height: 1.6rem; padding: 0.1rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); cursor: pointer;
+  }
+  .look .reset { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .save-count {
     display: inline-block; min-width: 1.2rem; margin-left: 0.35rem; padding: 0 0.3rem; border-radius: 999px;
     font-size: 0.7rem; text-align: center; background: var(--accent-text); color: var(--accent);

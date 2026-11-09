@@ -7,12 +7,42 @@
  * wheels from `py/`: no third-party CDN.
  */
 import type { PyodideAPI } from 'pyodide';
-import { installResumake, pythonError, WHEELS, type Render } from './pyrender';
+import { fontUrl, inlineFonts, installResumake, pythonError, WHEELS, type Render } from './pyrender';
 import type { FromWorker, ToWorker } from './preview-protocol';
 
 declare const self: DedicatedWorkerGlobalScope;
 
 const send = (msg: FromWorker) => self.postMessage(msg);
+
+let siteBase = '';
+/**
+ * Fonts as data: URLs, by `<theme>/<file>`: each is fetched once, the first time a theme is used.
+ * A font that fails to load is left out (the stylesheet's fallback fonts take over) and retried next time.
+ */
+const fontCache = new Map<string, Promise<string>>();
+
+function loadFont(theme: string, file: string): Promise<string> {
+  const key = `${theme}/${file}`;
+  let font = fontCache.get(key);
+  if (!font) {
+    font = (async () => {
+      const url = fontUrl(theme, file);
+      if (!url) throw new Error(`no font ${key}`);
+      const res = await fetch(new URL(url, siteBase));
+      if (!res.ok) throw new Error(`could not load the font ${file} (HTTP ${res.status})`);
+      return `data:font/woff2;base64,${base64(new Uint8Array(await res.arrayBuffer()))}`;
+    })();
+    font.catch(() => fontCache.delete(key)); // try again next render
+    fontCache.set(key, font);
+  }
+  return font;
+}
+
+function base64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
 
 async function boot(base: string): Promise<Render> {
   send({ type: 'status', stage: 'Loading Python…' });
@@ -45,6 +75,7 @@ let busy = false;
 self.onmessage = async (event: MessageEvent<ToWorker>) => {
   const msg = event.data;
   if (msg.type === 'init') {
+    siteBase ||= msg.base;
     ready ??= boot(msg.base);
     ready.catch((err) => send({ type: 'failed', error: pythonError(err) }));
     return;
@@ -58,7 +89,7 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
       const { id, data } = pending;
       pending = null;
       try {
-        send({ type: 'rendered', id, html: render(data) });
+        send({ type: 'rendered', id, html: await inlineFonts(render(data), (theme, file) => loadFont(theme, file).catch(() => '')) });
       } catch (err) {
         send({ type: 'error', id, error: pythonError(err) });
       }

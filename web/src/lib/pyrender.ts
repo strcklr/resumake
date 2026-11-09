@@ -3,7 +3,9 @@
  *
  * Only the pieces the HTML renderer needs are loaded: `context.py` (the view model shared by
  * every format), `themes.py`, `renderers/html.py`, `renderers/_templates.py`, the shared templates
- * and every theme (its theme.json, stylesheet and fonts, so `layout.theme` works here too). The real
+ * and every theme's theme.json and stylesheet, so `layout.theme` works here too. Fonts are not
+ * bundled in: a stylesheet's `url(fonts/...)` becomes a FONT_SCHEME placeholder, and `inlineFonts`
+ * swaps in the fonts a rendered page uses, fetched the first time a theme is used. The real
  * `renderers/__init__.py` imports the PDF and Word renderers (WeasyPrint, python-docx), so a
  * one-line stand-in replaces it here. YAML parsing and validation already happened in the editor,
  * so Python receives plain JSON and needs neither PyYAML nor jsonschema: just Jinja2 and MarkupSafe.
@@ -33,12 +35,21 @@ const themeFiles = import.meta.glob('../../../src/resumake/themes/*/{theme.json,
   import: 'default',
   eager: true,
 }) as Record<string, string>;
-// Inlined as data: URLs so the preview iframe needs no extra requests for them.
+// Each font is its own asset, fetched only when a rendered resume uses its theme.
 const fonts = import.meta.glob('../../../src/resumake/themes/*/fonts/*.woff2', {
-  query: '?inline',
+  query: '?url',
   import: 'default',
   eager: true,
 }) as Record<string, string>;
+
+/** Placeholder for a theme's font in rendered HTML: `resumake-font:<theme>/<file>`. */
+export const FONT_SCHEME = 'resumake-font:';
+const FONT_REF = /resumake-font:([\w-]+)\/([\w.-]+)/g;
+
+/** Where a theme's font is served (relative to the site, as Vite emitted it), or undefined. */
+export function fontUrl(theme: string, file: string): string | undefined {
+  return fonts[`${SRC}themes/${theme}/fonts/${file}`];
+}
 
 /** Where resumake's sources are written inside Pyodide's virtual filesystem. */
 const ROOT = '/resumake-src';
@@ -54,16 +65,27 @@ export function resumakeFiles(): Record<string, string> {
   files['resumake/renderers/__init__.py'] =
     '"""Browser build: only the HTML renderer is loaded (no PDF or Word dependencies)."""\n';
 
-  // Each theme's stylesheet points at its own fonts/ folder; swap those for the inlined fonts.
+  // Each theme's stylesheet points at its own fonts/ folder; mark those for inlineFonts.
   for (const key of Object.keys(files)) {
     const theme = /^resumake\/themes\/([\w-]+)\/style\.css$/.exec(key)?.[1];
     if (!theme) continue;
-    files[key] = files[key].replace(/url\(fonts\/([\w.-]+)\)/g, (match, name: string) => {
-      const url = fonts[`${SRC}themes/${theme}/fonts/${name}`];
-      return url ? `url("${url}")` : match;
-    });
+    files[key] = files[key].replace(/url\(fonts\/([\w.-]+)\)/g, (match, name: string) =>
+      fontUrl(theme, name) ? `url("${FONT_SCHEME}${theme}/${name}")` : match,
+    );
   }
   return files;
+}
+
+/**
+ * Replace the font placeholders in rendered HTML with data: URLs, so the page (and a downloaded
+ * copy of it) needs no other files. `load(theme, file)` returns a font's data: URL; the worker
+ * fetches and caches them.
+ */
+export async function inlineFonts(html: string, load: (theme: string, file: string) => Promise<string>): Promise<string> {
+  const refs = new Map<string, [string, string]>();
+  for (const m of html.matchAll(FONT_REF)) refs.set(m[0], [m[1], m[2]]);
+  const urls = new Map(await Promise.all([...refs].map(async ([ref, [theme, file]]) => [ref, await load(theme, file)] as const)));
+  return html.replace(FONT_REF, (ref) => urls.get(ref) ?? ref);
 }
 
 const BOOT = `
