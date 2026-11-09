@@ -82,10 +82,7 @@ SCHEMA = {
                 "additionalProperties": False,
                 "properties": {
                     "name": _str,
-                    # The live site, and the source code. With one, the project's name links to
-                    # it; with both, the name links to the site and "Source" to the code.
                     "url": _str,
-                    "source": _str,
                     # Without a status, a project with no `end` is in progress, else complete.
                     "status": {"enum": PROJECT_STATUSES},
                     "keywords": _str_list,

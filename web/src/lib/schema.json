@@ -181,9 +181,6 @@
           "url": {
             "type": "string"
           },
-          "source": {
-            "type": "string"
-          },
           "status": {
             "enum": [
               "in progress",

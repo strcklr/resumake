@@ -135,13 +135,9 @@ def _entry(key: str, item: dict) -> dict:
         )
     elif key == "projects":
         # Tech stack goes under the project name: "Go, DynamoDB, Docker".
-        # The name links to the live site, else the source; with both, "Source" follows the name.
-        url, source = item.get("url"), item.get("source")
         entry.update(
             title=item["name"],
-            title_url=url or source,
-            org="Source" if url and source else "",
-            org_url=source if url else None,
+            title_url=item.get("url"),
             subtitle=_join(item.get("location"), ", ".join(item.get("keywords", []))),
             keywords=[],
             status=project_status(item),

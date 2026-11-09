@@ -182,18 +182,6 @@ def test_project_tech_stack_is_subtitle():
     assert (entry["subtitle"], entry["keywords"], entry["dates"]) == ("Go, DynamoDB", [], "2020 – 2021")
 
 
-def test_project_links_live_site_and_source():
-    def entry(**links):
-        ctx = build_context({"basics": {"name": "A"}, "projects": [{"name": "P", **links}]})
-        e = ctx["sections"][0]["entries"][0]
-        return e["title_url"], e["org"], e["org_url"]
-
-    assert entry(url="https://p.dev") == ("https://p.dev", "", None)
-    assert entry(source="https://github.com/a/p") == ("https://github.com/a/p", "", None)
-    assert entry(url="https://p.dev", source="https://github.com/a/p") == (
-        "https://p.dev", "Source", "https://github.com/a/p")
-
-
 def test_project_status_defaults_from_end_date(tmp_path):
     from resumake.context import project_status
 
