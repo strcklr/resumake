@@ -41,6 +41,11 @@ def date_range(item: dict) -> str:
     return start or end
 
 
+def project_status(item: dict) -> str:
+    """A project's status: its `status`, else "in progress" without an `end` and "complete" with one."""
+    return item.get("status") or ("complete" if "end" in item else "in progress")
+
+
 def _contact(basics: dict) -> list[dict]:
     items = []
     if basics.get("location"):
@@ -130,11 +135,16 @@ def _entry(key: str, item: dict) -> dict:
         )
     elif key == "projects":
         # Tech stack goes under the project name: "Go, DynamoDB, Docker".
+        # The name links to the live site, else the source; with both, "Source" follows the name.
+        url, source = item.get("url"), item.get("source")
         entry.update(
             title=item["name"],
-            title_url=item.get("url"),
+            title_url=url or source,
+            org="Source" if url and source else "",
+            org_url=source if url else None,
             subtitle=_join(item.get("location"), ", ".join(item.get("keywords", []))),
             keywords=[],
+            status=project_status(item),
         )
     else:  # certifications
         entry.update(title=item["name"], title_url=item.get("url"), org=item.get("issuer", ""))

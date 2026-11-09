@@ -182,6 +182,29 @@ def test_project_tech_stack_is_subtitle():
     assert (entry["subtitle"], entry["keywords"], entry["dates"]) == ("Go, DynamoDB", [], "2020 – 2021")
 
 
+def test_project_links_live_site_and_source():
+    def entry(**links):
+        ctx = build_context({"basics": {"name": "A"}, "projects": [{"name": "P", **links}]})
+        e = ctx["sections"][0]["entries"][0]
+        return e["title_url"], e["org"], e["org_url"]
+
+    assert entry(url="https://p.dev") == ("https://p.dev", "", None)
+    assert entry(source="https://github.com/a/p") == ("https://github.com/a/p", "", None)
+    assert entry(url="https://p.dev", source="https://github.com/a/p") == (
+        "https://p.dev", "Source", "https://github.com/a/p")
+
+
+def test_project_status_defaults_from_end_date(tmp_path):
+    from resumake.context import project_status
+
+    assert project_status({"start": 2024}) == "in progress"
+    assert project_status({"start": 2024, "end": 2025}) == "complete"
+    assert project_status({"start": 2024, "status": "deployed"}) == "deployed"
+    f = write(tmp_path / "r.yml", {"basics": {"name": "A"}, "projects": [{"name": "P", "status": "shipped"}]})
+    with pytest.raises(ResumeError, match="status"):
+        load_resume(f)
+
+
 # --- web editor schema -----------------------------------------------------
 
 def test_web_schema_is_in_sync():
