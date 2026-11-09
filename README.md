@@ -162,7 +162,8 @@ layout:
 Like any field, `theme` and `accent` inherit through `extends:`, so a tailored resume can use a
 different theme from its base. `resumake build --theme compact` overrides the file for one build,
 and `resumake themes` lists the themes. In the web editor, the Preview's theme and colour pickers
-write these two fields into the open file, and autocomplete suggests their values.
+write these two fields into the open file, the Themes tab shows your resume in every theme, and
+autocomplete suggests their values.
 
 ## Customizing the look
 

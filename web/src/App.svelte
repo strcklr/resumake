@@ -6,6 +6,7 @@
   import GitHubSteps from './GitHubSteps.svelte';
   import Preview from './Preview.svelte';
   import Splash from './Splash.svelte';
+  import ThemeGallery from './ThemeGallery.svelte';
   import { createEditor, jumpTo, type Editor } from './lib/editor';
   import {
     BASE_FILE,
@@ -24,7 +25,7 @@
   } from './lib/files';
   import { diffFiles, type LoadedRepo } from './lib/github';
   import { hasSyntaxErrors, ownLayoutField, setLayoutField, type LayoutKey } from './lib/layout';
-  import { effectiveLook } from './lib/themes';
+  import { effectiveLook, THEMES } from './lib/themes';
   import { PreviewClient } from './lib/preview';
   import { formatPath } from './lib/validate';
   import {
@@ -36,7 +37,7 @@
     type Resolved,
   } from './lib/workspace';
 
-  type Tab = 'preview' | 'problems' | 'inherited' | 'graph' | 'github';
+  type Tab = 'preview' | 'themes' | 'problems' | 'inherited' | 'graph' | 'github';
 
   // The GitHub tab: creating a repo from the template works; sign-in and saving arrive with #5.
   const GITHUB_ENABLED = true;
@@ -67,6 +68,10 @@
   let loading: string | null = $state('Starting…');
   let failed: string | null = $state(null);
   let renderError: string | null = $state(null);
+  /** The last valid version of the open resume, as rendered in the preview. */
+  let rendered = $state.raw<unknown>(null);
+  /** The gallery's renders of `rendered`, by theme name (null until they arrive). */
+  let gallery = $state<Record<string, string | null> | null>(null);
 
   const paths = $derived(sortPaths(Object.keys(files)));
   const problems = $derived(resolved?.problems ?? []);
@@ -89,7 +94,13 @@
   const extendedBy = $derived(children.get(active) ?? []);
   // Fall back to the preview when switching to a file that doesn't have the open tab.
   $effect(() => {
-    if ((tab === 'inherited' && !inherited.length) || (tab === 'graph' && !extendedBy.length)) tab = 'preview';
+    if ((tab === 'inherited' && !inherited.length) || (tab === 'graph' && !extendedBy.length) || (tab === 'themes' && partial)) {
+      tab = 'preview';
+    }
+  });
+  // The gallery renders every theme, so only while it's open (and again when the resume changes).
+  $effect(() => {
+    if (tab === 'themes' && rendered && !partial) preview?.renderGallery(rendered, THEMES.map((t) => t.name));
   });
   // The theme picker: shows what the resolved resume uses, and writes changes into the open file.
   const look = $derived.by(() => {
@@ -126,7 +137,10 @@
     resolved = result;
     persist(snapshot);
     // Render only what passes validation; otherwise keep showing the last good version.
-    if (!partial && result.data && !result.problems.some((p) => p.severity === 'error')) preview?.render(result.data);
+    if (!partial && result.data && !result.problems.some((p) => p.severity === 'error')) {
+      preview?.render(result.data);
+      rendered = result.data;
+    }
     return result.problems.filter((p) => p.file === active);
   }
 
@@ -143,6 +157,8 @@
       states.set(active, editor.view.state);
       active = path;
       resolved = null;
+      rendered = null;
+      gallery = null;
       editor.view.setState(states.get(path) ?? editor.stateFor(files[path]));
     }
     persist();
@@ -183,6 +199,7 @@
         renderError = null;
       },
       onError: (error) => (renderError = error),
+      onGallery: (items) => (gallery = Object.fromEntries(items.map((i) => [i.theme, i.html]))),
     });
     editor = createEditor({ parent: host, dark: matchMedia('(prefers-color-scheme: dark)').matches, check });
     editor.view.setState(editor.stateFor(files[active]));
@@ -447,6 +464,9 @@
   <section class="pane side-pane">
     <div class="tabs" role="tablist" aria-label="Side panel">
       <button role="tab" type="button" aria-selected={tab === 'preview'} onclick={() => (tab = 'preview')}>Preview</button>
+      {#if !partial}
+        <button role="tab" type="button" aria-selected={tab === 'themes'} onclick={() => (tab = 'themes')}>Themes</button>
+      {/if}
       <button role="tab" type="button" aria-selected={tab === 'problems'} onclick={() => (tab = 'problems')}>
         Problems
         {#if problems.length}<span class="count" class:has-errors={errors > 0}>{problems.length}</span>{/if}
@@ -480,6 +500,18 @@
         {look}
       />
     </div>
+
+    {#if tab === 'themes' && !partial}
+      <div class="tab-body" role="tabpanel">
+        <ThemeGallery
+          items={gallery}
+          current={look?.theme.name ?? 'classic'}
+          file={active}
+          {stale}
+          onPick={(name) => setLayout('theme', name)}
+        />
+      </div>
+    {/if}
 
     <div class="tab-body" role="tabpanel" hidden={tab !== 'problems'}>
       {#if !checked}

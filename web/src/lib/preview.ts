@@ -7,11 +7,14 @@ export interface PreviewEvents {
   onFailed: (error: string) => void;
   onRendered: (html: string) => void;
   onError: (error: string) => void;
+  /** The gallery's renders (see renderGallery). */
+  onGallery?: (items: { theme: string; html: string | null }[]) => void;
 }
 
 export class PreviewClient {
   private worker: Worker;
   private latest = 0;
+  private latestGallery = 0;
 
   constructor(events: PreviewEvents) {
     this.worker = new Worker(new URL('./preview.worker.ts', import.meta.url), { type: 'module' });
@@ -30,6 +33,9 @@ export class PreviewClient {
         case 'error':
           if (msg.id === this.latest) events.onError(msg.error);
           return;
+        case 'gallery':
+          if (msg.id === this.latestGallery) events.onGallery?.(msg.items);
+          return;
       }
     };
     this.worker.onerror = (e) => events.onFailed(e.message || 'the preview worker stopped');
@@ -39,6 +45,11 @@ export class PreviewClient {
 
   render(data: unknown): void {
     this.post({ type: 'render', id: ++this.latest, data });
+  }
+
+  /** Render `data` in each of `themes`, for the gallery. */
+  renderGallery(data: unknown, themes: string[]): void {
+    this.post({ type: 'gallery', id: ++this.latestGallery, data, themes });
   }
 
   destroy(): void {

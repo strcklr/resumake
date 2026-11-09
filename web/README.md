@@ -108,7 +108,8 @@ has errors, the last valid version stays on screen, dimmed.
 - **Themes:** every theme's stylesheet is loaded, so `layout.theme` and `layout.accent` work as in the
   CLI. The **Theme** picker and colour picker above the preview write those fields into the open file
   as an ordinary edit (`src/lib/layout.ts`: a small text change, so comments and formatting stay, and
-  undo works). A tailored file gets its own override.
+  undo works). A tailored file gets its own override. The **Themes** tab shows the open resume's
+  first page in every theme (rendered only while the tab is open); picking one does the same.
 - **Fonts:** each theme's bundled fonts are separate files, fetched the first time a resume uses that
   theme and inlined into the rendered page as data URLs, so the preview looks like the PDF and a
   downloaded copy needs no other files.
@@ -128,6 +129,7 @@ has errors, the last valid version stays on screen, dimmed.
 | `src/lib/files.ts` | The browser's file store: saving, opening a folder, zipping, naming new files |
 | `src/lib/complete.ts` | Field, section-name and value (theme, accent colour) suggestions from the schema |
 | `src/lib/layout.ts` | Sets or removes a `layout:` field (theme, accent) in the YAML as a small text edit |
+| `src/ThemeGallery.svelte` | The Themes tab: the open resume in every theme, as thumbnails |
 | `src/lib/themes.ts` | The themes' titles and default accents, from each theme's `theme.json` |
 | `src/lib/editor.ts` | CodeMirror setup: YAML mode, lint, autocomplete |
 | `src/lib/pyrender.ts` | Loads resumake into Pyodide and renders HTML (shared by the worker and tests) |
