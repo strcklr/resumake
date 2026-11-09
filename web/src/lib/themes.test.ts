@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allThemes, customThemes, effectiveLook, isThemeFile } from './themes';
+import { allThemes, customThemes, effectiveLook, isThemeFile, THEMES } from './themes';
 import { Workspace } from './workspace';
 
 const repo = {
@@ -17,7 +17,8 @@ describe('repo themes', () => {
 
   it('lists built-in and repo themes together, a repo theme replacing a built-in of the same name', () => {
     const all = allThemes(repo);
-    expect(all.map((t) => t.name)).toEqual(['classic', 'compact', 'mine', 'modern']);
+    const builtIn = THEMES.map((t) => t.name);
+    expect(all.map((t) => t.name)).toEqual(['classic', ...[...builtIn.slice(1), 'mine'].sort()]);
     expect(all[0]).toMatchObject({ title: 'My classic', custom: true });
     expect(effectiveLook({ layout: { theme: 'mine' } }, all)).toMatchObject({ accent: '#123456' });
   });
@@ -36,7 +37,8 @@ describe('repo themes', () => {
     expect(ok.problems).toEqual([]);
     const [p] = new Workspace({ 'a.yml': 'basics:\n  name: A\nlayout:\n  theme: fancy\n' }, names).resolve('a.yml').problems;
     expect(p).toMatchObject({ path: 'layout.theme', line: 4 });
-    expect(p.message).toBe("unknown theme 'fancy' (choose from classic, compact, mine, modern)");
+    expect(p.message).toBe(`unknown theme 'fancy' (choose from ${names.join(', ')})`);
+    expect(names).toContain('mine');
     // Without the repo's themes, `mine` is unknown.
     expect(new Workspace({ 'a.yml': 'basics:\n  name: A\nlayout:\n  theme: mine\n' }).resolve('a.yml').problems).toHaveLength(1);
   });

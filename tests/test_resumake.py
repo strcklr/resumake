@@ -235,7 +235,7 @@ def _with_layout(**layout):
 
 
 def test_themes_are_listed_classic_first():
-    assert themes.available() == ["classic", "compact", "modern"]
+    assert themes.available() == ["classic", "compact", "executive", "minimal", "modern", "mono", "timeline"]
     for name in themes.available():
         t = themes.load(name)
         assert t.title and t.description and t.docx["font"]
@@ -271,12 +271,33 @@ def test_theme_is_inherited_through_extends(tmp_path):
     assert (ctx["theme"], ctx["accent"]) == ("modern", "#abcdef")
 
 
-@pytest.mark.parametrize("theme", ["classic", "modern", "compact"])
+FONTS = {
+    "classic": "Georgia",
+    "modern": "Inter",
+    "compact": "Source Sans 3",
+    "executive": "Source Serif 4",
+    "minimal": "IBM Plex Sans",
+    "mono": "JetBrains Mono",
+    "timeline": "Lato",
+}
+
+
+def test_every_theme_bundles_its_fonts_with_a_licence():
+    assert sorted(FONTS) == themes.available()
+    for name in themes.available():
+        folder = themes.BUILT_IN / name
+        css = (folder / "style.css").read_text()
+        for font in __import__("re").findall(r"url\(fonts/([\w.-]+)\)", css):
+            assert (folder / "fonts" / font).is_file(), f"{name}: missing fonts/{font}"
+        assert any(p.name.startswith("OFL") for p in (folder / "fonts").iterdir()), f"{name}: no font licence"
+
+
+@pytest.mark.parametrize("theme", sorted(FONTS))
 def test_every_theme_builds_every_format(tmp_path, theme):
     assert main(["build", str(RESUMES / "default.yml"), "-t", theme, "-o", str(tmp_path)]) == 0
     assert (tmp_path / "default.pdf").read_bytes().startswith(b"%PDF")
     page = (tmp_path / "default.html").read_text(encoding="utf-8")
-    assert {"classic": "Georgia", "modern": "Inter", "compact": "Source Sans 3"}[theme] in page
+    assert FONTS[theme] in page
     docx_font = Document(tmp_path / "default.docx").styles["Normal"].font.name
     assert docx_font == themes.load(theme).docx["font"]
 
@@ -328,7 +349,7 @@ def test_a_repo_theme_can_leave_out_word_settings(tmp_path, monkeypatch):
 def test_unknown_theme_lists_the_repo_themes(tmp_path, monkeypatch):
     repo = _repo(tmp_path, monkeypatch)
     resume = write(repo / "resumes" / "r.yml", {"basics": {"name": "A"}, "layout": {"theme": "fancy"}})
-    with pytest.raises(ResumeError, match=r"layout.theme: unknown theme 'fancy' \(choose from classic, compact, mine, modern\)"):
+    with pytest.raises(ResumeError, match=r"layout.theme: unknown theme 'fancy' \(choose from classic, compact, executive, mine, minimal, modern, mono, timeline\)"):
         load_resume(resume)
     assert main(["build", str(resume), "-t", "nope"]) == 1
 

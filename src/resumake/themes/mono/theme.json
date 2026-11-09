@@ -1,0 +1,15 @@
+{
+  "title": "Mono",
+  "description": "A developer look: JetBrains Mono headings, Inter body, # before section names, accent-coloured links.",
+  "accent": "#2f6fe0",
+  "docx": {
+    "font": "Calibri",
+    "body_size": 9.5,
+    "margin": 0.65,
+    "colors": { "ink": "111418", "text": "2A2F36", "muted": "6A717C" },
+    "header": { "align": "left", "name_size": 22, "label_size": 10.5, "label_color": "muted", "contact_separator": "    " },
+    "heading": { "size": 10.5, "color": "ink", "rule": "E3E6EA", "spacing": 0 },
+    "dates_italic": false,
+    "role": { "color": "accent", "italic": false }
+  }
+}

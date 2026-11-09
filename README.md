@@ -159,7 +159,7 @@ A theme sets how a resume looks; every theme shows the same content. Pick one in
 
 ```yaml
 layout:
-  theme: modern        # classic (default), modern or compact
+  theme: modern        # classic (default), modern, compact, executive, minimal, mono or timeline
   accent: "#4338ca"    # for themes with colour; others ignore it
 ```
 
@@ -168,6 +168,13 @@ layout:
 | `classic` | Georgia serif, centred header, uppercase headings over a rule. The default. |
 | `modern` | Inter, left-aligned header, one accent colour (default `#0f766e`). |
 | `compact` | Source Sans 3, black and white, dense, section names in a left gutter. Fits more on a page. |
+| `executive` | Source Serif 4, a full-width name band in the accent colour (default `#1f3a5f`; keep it dark), generous spacing. Formal. |
+| `minimal` | IBM Plex Sans, lots of white space, light weights, small grey section labels, no rules. The accent (default `#3b5bdb`) colours only the headline. |
+| `mono` | A developer look: JetBrains Mono headings, Inter body, `#` before section names, accent-coloured links (default `#2f6fe0`). |
+| `timeline` | Lato, dates in a left column beside a line with a dot for each job and role (accent, default `#c2410c`). |
+
+All of them keep one reading column in document order, so applicant tracking systems (ATS) read
+them the same way.
 
 Like any field, `theme` and `accent` inherit through `extends:`, so a tailored resume can use a
 different theme from its base. `resumake build --theme compact` overrides the file for one build,
@@ -185,8 +192,11 @@ Each theme is a folder in `src/resumake/themes/`:
 - `fonts/`: bundled, openly licensed (SIL OFL) fonts, so the PDF and the editor's preview look the
   same everywhere. Classic uses Georgia where it's installed and the metric-compatible
   [Gelasio](https://github.com/SorkinType/Gelasio) elsewhere (e.g. Linux CI), so line breaks and page
-  count stay the same; modern bundles [Inter](https://github.com/rsms/inter) and compact
-  [Source Sans 3](https://github.com/adobe-fonts/source-sans).
+  count stay the same; modern bundles [Inter](https://github.com/rsms/inter), compact
+  [Source Sans 3](https://github.com/adobe-fonts/source-sans), executive
+  [Source Serif 4](https://github.com/adobe-fonts/source-serif), minimal
+  [IBM Plex Sans](https://github.com/IBM/plex), mono [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
+  and Inter, and timeline [Lato](https://www.latofonts.com/).
 - `theme.json`: its title, description, default accent (`null` for none), and `docx` settings for
   Word (font, colours, sizes, header alignment, heading style). Word is built in code in
   `src/resumake/renderers/docx.py`, so the result is a normal, editable Word document that follows
