@@ -1,0 +1,66 @@
+/* modern: Inter, left-aligned header, one accent colour (layout.accent). */
+@font-face { font-family: "Inter"; font-weight: 400; src: url(fonts/inter-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; font-style: italic; src: url(fonts/inter-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; src: url(fonts/inter-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 700; src: url(fonts/inter-latin-700-normal.woff2) format("woff2"); }
+
+:root {
+  --accent: #0f766e;   /* default; layout.accent overrides it */
+  --ink: #111827;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --rule: #e5e7eb;
+}
+* { box-sizing: border-box; }
+html { font-size: 9.25pt; }
+body { margin: 0; color: var(--text); background: #fff; font-family: Inter, "Helvetica Neue", Arial, sans-serif; line-height: 1.42; }
+.resume { max-width: 8.5in; margin: 0 auto; padding: 0.6in 0.7in; }
+a { color: inherit; text-decoration: none; }
+p { margin: 0; }
+
+/* Header: a short accent bar, then name, headline in the accent, contact line */
+header { margin-bottom: 12pt; }
+header::before { content: ""; display: block; width: 34pt; height: 3.5pt; background: var(--accent); border-radius: 2pt; margin-bottom: 10pt; }
+h1 { font-size: 25pt; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin: 0; line-height: 1.1; }
+.label { font-size: 11.5pt; font-weight: 500; color: var(--accent); margin: 3pt 0 7pt; }
+.contact { list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 8.75pt; display: flex; flex-wrap: wrap; row-gap: 2pt; column-gap: 14pt; }
+.contact li { white-space: nowrap; }
+.contact .sep { display: none; }  /* spacing instead: a separator would start a wrapped line */
+
+/* Section headings: small caps in the accent, with a hairline running out to the margin */
+h2 {
+  display: flex; align-items: center; gap: 8pt;
+  font-size: 8pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin: 15pt 0 5pt;
+}
+h2::after { content: ""; flex: 1; border-top: 0.75pt solid var(--rule); }
+
+.section-summary > p { color: var(--text); }
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { margin: 2pt 0; }
+.skills strong { color: var(--ink); font-weight: 600; }
+
+.entry { margin-top: 9pt; break-inside: avoid; }
+.entry:has(.role) { break-inside: auto; }
+.section-education .entry, .section-certifications .entry { margin-top: 5pt; }
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+h3 { font-size: 10.25pt; font-weight: 600; color: var(--ink); margin: 0; }
+.org { font-weight: 400; color: var(--muted); }
+.org-sep { margin: 0 0.4em; color: #c7cbd1; }
+.dates { color: var(--muted); font-size: 8.5pt; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sub { margin-top: 1pt; color: var(--muted); }
+.entry > p { margin: 2pt 0; }
+.keywords { color: var(--muted); font-size: 8.5pt; }
+
+/* Several roles at one company hang off a thin line */
+.role { margin-top: 5pt; padding-left: 9pt; border-left: 1.5pt solid var(--rule); break-inside: avoid; }
+h4 { font-size: 9.75pt; font-weight: 600; color: var(--accent); margin: 0 0 1pt; }
+
+/* Bullets: small accent dots */
+.entry ul { margin: 3pt 0 0; padding-left: 12pt; list-style: none; }
+.entry li { margin: 2pt 0; position: relative; }
+.entry li::before { content: ""; position: absolute; left: -9pt; top: 0.58em; width: 3.25pt; height: 3.25pt; border-radius: 50%; background: var(--accent); }
+
+@page { size: Letter; margin: 0.6in 0.7in; }
+@media print { .resume { max-width: none; padding: 0; } }

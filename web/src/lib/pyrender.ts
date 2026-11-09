@@ -2,7 +2,8 @@
  * Run resumake's own Python in Pyodide to render the HTML preview.
  *
  * Only the pieces the HTML renderer needs are loaded: `context.py` (the view model shared by
- * every format), `renderers/html.py`, `renderers/_templates.py` and the templates. The real
+ * every format), `themes.py`, `renderers/html.py`, `renderers/_templates.py`, the shared templates
+ * and every theme (its theme.json, stylesheet and fonts, so `layout.theme` works here too). The real
  * `renderers/__init__.py` imports the PDF and Word renderers (WeasyPrint, python-docx), so a
  * one-line stand-in replaces it here. YAML parsing and validation already happened in the editor,
  * so Python receives plain JSON and needs neither PyYAML nor jsonschema: just Jinja2 and MarkupSafe.
@@ -16,6 +17,7 @@ const python = import.meta.glob(
   [
     '../../../src/resumake/__init__.py',
     '../../../src/resumake/context.py',
+    '../../../src/resumake/themes.py',
     '../../../src/resumake/renderers/html.py',
     '../../../src/resumake/renderers/_templates.py',
   ],
@@ -26,8 +28,13 @@ const templates = import.meta.glob('../../../src/resumake/templates/*.{j2,css}',
   import: 'default',
   eager: true,
 }) as Record<string, string>;
+const themeFiles = import.meta.glob('../../../src/resumake/themes/*/{theme.json,style.css,resume.html.j2}', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
 // Inlined as data: URLs so the preview iframe needs no extra requests for them.
-const fonts = import.meta.glob('../../../src/resumake/templates/fonts/*.woff2', {
+const fonts = import.meta.glob('../../../src/resumake/themes/*/fonts/*.woff2', {
   query: '?inline',
   import: 'default',
   eager: true,
@@ -41,17 +48,21 @@ export const WHEELS = ['jinja2-3.1.6-py3-none-any.whl', 'markupsafe-3.0.3-py3-no
 /** resumake's files as they'll sit under ROOT, keyed by package-relative path. */
 export function resumakeFiles(): Record<string, string> {
   const files: Record<string, string> = {};
-  for (const [path, text] of Object.entries({ ...python, ...templates })) {
+  for (const [path, text] of Object.entries({ ...python, ...templates, ...themeFiles })) {
     files['resumake/' + path.slice(SRC.length)] = text;
   }
   files['resumake/renderers/__init__.py'] =
     '"""Browser build: only the HTML renderer is loaded (no PDF or Word dependencies)."""\n';
 
-  const fontUrl = (name: string) => fonts[`${SRC}templates/fonts/${name}`];
-  files['resumake/templates/style.css'] = files['resumake/templates/style.css'].replace(
-    /url\(fonts\/([\w.-]+)\)/g,
-    (match, name: string) => (fontUrl(name) ? `url("${fontUrl(name)}")` : match),
-  );
+  // Each theme's stylesheet points at its own fonts/ folder; swap those for the inlined fonts.
+  for (const key of Object.keys(files)) {
+    const theme = /^resumake\/themes\/([\w-]+)\/style\.css$/.exec(key)?.[1];
+    if (!theme) continue;
+    files[key] = files[key].replace(/url\(fonts\/([\w.-]+)\)/g, (match, name: string) => {
+      const url = fonts[`${SRC}themes/${theme}/fonts/${name}`];
+      return url ? `url("${url}")` : match;
+    });
+  }
   return files;
 }
 

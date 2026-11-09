@@ -19,11 +19,18 @@ describe('resumakeFiles', () => {
         'resumake/renderers/html.py',
         'resumake/renderers/__init__.py',
         'resumake/templates/resume.html.j2',
+        'resumake/themes.py',
+        'resumake/themes/classic/theme.json',
+        'resumake/themes/modern/style.css',
+        'resumake/themes/compact/style.css',
       ]),
     );
     expect(files['resumake/renderers/__init__.py']).not.toMatch(/import/);
-    expect(files['resumake/templates/style.css']).not.toMatch(/url\(fonts\//);
-    expect(files['resumake/templates/style.css']).toMatch(/url\("data:font\/woff2;base64,/);
+    for (const theme of ['classic', 'modern', 'compact']) {
+      const css = files[`resumake/themes/${theme}/style.css`];
+      expect(css).not.toMatch(/url\(fonts\//);
+      expect(css).toMatch(/url\("data:font\/woff2;base64,/);
+    }
   });
 });
 
@@ -45,6 +52,17 @@ describe('rendering in Pyodide', () => {
     expect(html).toContain('<h1>Jordan Example</h1>');
     expect(html).toContain('Acme Analytics');
     expect(html).toContain('Feb 2023'); // dates are formatted by resumake's context.py
+  });
+
+  it('renders each theme, with layout.accent only where the theme uses colour', () => {
+    const data = validate(sample).data as Record<string, unknown>;
+    const withTheme = (layout: Record<string, string>) =>
+      render({ ...data, layout: { ...(data.layout as object), ...layout } });
+    expect(render(data)).toContain('Georgia');
+    expect(withTheme({ theme: 'modern' })).toContain('font-family: Inter');
+    expect(withTheme({ theme: 'modern', accent: '#4338ca' })).toContain('--accent: #4338ca');
+    expect(withTheme({ theme: 'compact' })).toContain('Source Sans 3');
+    expect(withTheme({ theme: 'compact', accent: '#4338ca' })).not.toContain('#4338ca');
   });
 
   it('escapes text from the resume', () => {

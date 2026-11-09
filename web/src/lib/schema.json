@@ -378,6 +378,17 @@
         },
         "output_name": {
           "type": "string"
+        },
+        "theme": {
+          "enum": [
+            "classic",
+            "compact",
+            "modern"
+          ]
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
         }
       }
     }

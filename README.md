@@ -81,7 +81,7 @@ The full schema is in [`src/resumake/schema.py`](src/resumake/schema.py); see
 | `skills[]` | `name` (required), `keywords[]` |
 | `certifications[]` | `name` (required), `issuer`, `date`, `url` |
 | `job` | Not rendered. `title`, `company`, `url`, `applied`, `status`, `notes`, `description` |
-| `layout` | `sections` (order; omitted sections are hidden), `titles` (rename headings), `output_name` |
+| `layout` | `sections` (order; omitted sections are hidden), `titles` (rename headings), `output_name`, `theme` (how it looks; see below), `accent` (`#rrggbb`, for themes with colour) |
 
 Dates can be `2021`, `2021-03` or `2021-03-15` and render as `2021` / `Mar 2021`. An entry with a
 `start` and no `end` renders as "… – Present".
@@ -143,17 +143,49 @@ workflow with the tests turned on and releases turned off.
 | `install` | `git+https://github.com/strcklr/resumake@main` | pip requirement for resumake |
 | `python-version` | `3.12` | |
 
+## Themes
+
+A theme sets how a resume looks; every theme shows the same content. Pick one in the YAML:
+
+```yaml
+layout:
+  theme: modern        # classic (default), modern or compact
+  accent: "#4338ca"    # for themes with colour; others ignore it
+```
+
+| Theme | Look |
+|---|---|
+| `classic` | Georgia serif, centred header, uppercase headings over a rule. The default. |
+| `modern` | Inter, left-aligned header, one accent colour (default `#0f766e`). |
+| `compact` | Source Sans 3, black and white, dense, section names in a left gutter. Fits more on a page. |
+
+Like any field, `theme` and `accent` inherit through `extends:`, so a tailored resume can use a
+different theme from its base. `resumake build --theme compact` overrides the file for one build,
+and `resumake themes` lists the themes.
+
 ## Customizing the look
 
-- HTML and PDF share one template and stylesheet: `src/resumake/templates/resume.html.j2` and
-  `style.css` (page size and margins are in the `@page` rule).
-- Text is set in Georgia. Where Georgia isn't installed (e.g. Linux CI), the bundled
-  [Gelasio](https://github.com/SorkinType/Gelasio) is used instead. It's metric-compatible with
-  Georgia, so line breaks and page count stay the same. It's licensed under the SIL OFL
-  (`src/resumake/templates/fonts/OFL.txt`).
-- Markdown: `src/resumake/templates/resume.md.j2`.
-- Word: built in code in `src/resumake/renderers/docx.py` so the result is a normal, editable
-  Word document.
+Each theme is a folder in `src/resumake/themes/`:
+
+- `style.css`: the stylesheet for HTML and PDF (page size and margins are in its `@page` rule). The
+  HTML comes from the shared `src/resumake/templates/resume.html.j2`, unless the theme has its own
+  `resume.html.j2`.
+- `fonts/`: bundled, openly licensed (SIL OFL) fonts, so the PDF and the editor's preview look the
+  same everywhere. Classic uses Georgia where it's installed and the metric-compatible
+  [Gelasio](https://github.com/SorkinType/Gelasio) elsewhere (e.g. Linux CI), so line breaks and page
+  count stay the same; modern bundles [Inter](https://github.com/rsms/inter) and compact
+  [Source Sans 3](https://github.com/adobe-fonts/source-sans).
+- `theme.json`: its title, description, default accent (`null` for none), and `docx` settings for
+  Word (font, colours, sizes, header alignment, heading style). Word is built in code in
+  `src/resumake/renderers/docx.py`, so the result is a normal, editable Word document that follows
+  the theme closely but isn't a pixel copy of the PDF. Word uses fonts installed on the reader's
+  computer, so `docx.font` names a common one (Georgia, Arial, Calibri) rather than the bundled
+  web font.
+
+To add a theme, copy a theme folder, change its stylesheet and `theme.json`, and run
+`resumake schema -o web/src/lib/schema.json` so the schema (and the editor) know its name.
+
+Markdown has one shared template: `src/resumake/templates/resume.md.j2`.
 
 To add a format, write a `render(ctx, out_path)` function and register it in
 `src/resumake/renderers/__init__.py`.

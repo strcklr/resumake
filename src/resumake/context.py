@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from resumake import themes
+
 DEFAULT_SECTIONS = ["summary", "work", "projects", "skills", "education", "certifications"]
 DEFAULT_TITLES = {
     "summary": "Summary",
@@ -159,4 +161,13 @@ def build_context(data: dict) -> dict:
             entries = [_entry(key, item) for item in items]
         sections.append({"key": key, "title": titles[key], "entries": entries})
 
-    return {"basics": basics, "contact": _contact(basics), "sections": sections}
+    theme = themes.load(layout.get("theme", themes.DEFAULT))
+    # A theme without colour (accent: null) ignores layout.accent.
+    accent = (layout.get("accent") or theme.accent) if theme.accent else None
+    return {
+        "basics": basics,
+        "contact": _contact(basics),
+        "sections": sections,
+        "theme": theme.name,
+        "accent": accent,
+    }

@@ -6,6 +6,9 @@
 <title>{{ basics.name }}{% if basics.label %} — {{ basics.label }}{% endif %}</title>
 <style>
 {{ css | safe }}
+{% if accent %}
+:root { --accent: {{ accent }}; }
+{% endif %}
 </style>
 </head>
 {% macro link(text, url) %}{% if url %}<a href="{{ url }}">{{ text }}</a>{% else %}{{ text }}{% endif %}{% endmacro %}
