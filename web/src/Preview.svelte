@@ -7,6 +7,7 @@
    * resume itself can't use that access. Links open in a new tab.
    */
   import { onMount } from 'svelte';
+  import { track } from './lib/analytics';
   import type { ThemeInfo } from './lib/themes';
 
   interface Props {
@@ -94,6 +95,7 @@
   function printPdf() {
     const url = blobUrl();
     if (!url) return;
+    track('print-pdf');
     const win = window.open(url, '_blank');
     if (!win) return;
     win.addEventListener('load', () => {
@@ -105,6 +107,7 @@
   function downloadHtml() {
     const url = blobUrl();
     if (!url) return;
+    track('download-html');
     const a = Object.assign(document.createElement('a'), {
       href: url,
       download: fileName.replace(/\.ya?ml$/i, '') + '.html',

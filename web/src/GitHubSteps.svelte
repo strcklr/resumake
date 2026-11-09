@@ -3,6 +3,7 @@
   // open the repo's resumes in the editor, and save changes back (SaveToGitHub).
   import { onMount } from 'svelte';
   import SaveToGitHub from './SaveToGitHub.svelte';
+  import { track } from './lib/analytics';
   import type { Source } from './lib/files';
   import type { Files } from './lib/workspace';
   import {
@@ -142,7 +143,10 @@
           Your sign-in lasts until you close this tab, at most 8 hours, and only reaches the repos you give the
           resumake app access to.
         </p>
-        <button type="button" class="button-link" onclick={() => (window.location.href = signInUrl(cfg))}>
+        <button type="button" class="button-link" onclick={() => {
+          track('github-sign-in');
+          window.location.href = signInUrl(cfg);
+        }}>
           Sign in with GitHub
         </button>
       {/if}
@@ -155,7 +159,7 @@
         make a copy of the <a href={TEMPLATE_REPO} target="_blank" rel="noopener noreferrer">resumes template</a>: a
         sample resume, a tailored example and the build workflow.
       </p>
-      <a class="button-link" class:secondary={linked} href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer">
+      <a class="button-link" class:secondary={linked} href={USE_TEMPLATE} target="_blank" rel="noopener noreferrer" onclick={() => track('github-repo-template')}>
         Create my resumes repo <span aria-hidden="true">↗</span>
       </a>
       <p class="fine">Choose <strong>Private</strong> on GitHub's page: new repos are public by default.</p>

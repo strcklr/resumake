@@ -24,6 +24,7 @@
     type Source,
   } from './lib/files';
   import { diffFiles, type LoadedRepo } from './lib/github';
+  import { track, themeLabel } from './lib/analytics';
   import { hasSyntaxErrors, ownLayoutField, setLayoutField, type LayoutKey } from './lib/layout';
   import { allThemes, effectiveLook, type ThemeFiles } from './lib/themes';
   import { PreviewClient } from './lib/preview';
@@ -116,18 +117,31 @@
       accent,
       ownAccent: ownLayoutField(files[active], 'accent') !== undefined,
       file: active,
-      setTheme: (name: string) => setLayout('theme', name),
-      setAccent: (hex: string | null) => setLayout('accent', hex),
+      setTheme: (name: string) => pickTheme(name, 'picker'),
+      setAccent: (hex: string | null) => {
+        if (setLayout('accent', hex)) track('accent-pick', { reset: hex === null });
+      },
     };
   });
 
-  /** Write a `layout:` field into the open file, as an edit you can undo. */
-  function setLayout(key: LayoutKey, value: string | null) {
-    if (!editor) return;
+  /** Write a `layout:` field into the open file, as an edit you can undo. True if the file changed. */
+  function setLayout(key: LayoutKey, value: string | null): boolean {
+    if (!editor) return false;
     const text = editor.view.state.doc.toString();
     const change = setLayoutField(text, key, value);
     if (change) editor.view.dispatch({ changes: change, userEvent: 'input.layout' });
     else if (hasSyntaxErrors(text)) alert(`Fix the YAML errors in ${active} first.`);
+    return change !== null;
+  }
+
+  function openThemesTab() {
+    if (tab !== 'themes') track('themes-tab');
+    tab = 'themes';
+  }
+
+  function pickTheme(name: string, via: 'picker' | 'gallery') {
+    const theme = themeList.find((t) => t.name === name);
+    if (setLayout('theme', name) && theme) track('theme-pick', { theme: themeLabel(theme), via });
   }
 
   const notice = $derived(
@@ -246,6 +260,7 @@
     const base = BASE_FILE in files ? BASE_FILE : paths.find((p) => !isPartial(p));
     files[name] = newVariant(name, base);
     open(name);
+    track('new-file');
   }
 
   function renameFile() {
@@ -286,6 +301,7 @@
     if (confirm('Replace all your files with the sample resume and its tailored variant?')) {
       const sample = sampleWorkspace();
       replaceAll(sample.files, sample.active, sample.tabs);
+      track('load-sample');
     }
   }
 
@@ -302,6 +318,7 @@
       states.delete(name);
     }
     for (const name of names) if (!tabs.includes(name)) tabs.push(name);
+    track('open-files');
     if (names.includes(active)) {
       resolved = null;
       editor?.view.setState(editor.stateFor(files[active]));
@@ -321,6 +338,7 @@
     if (!confirm(`Replace all your files with the ${names.length} resume file${names.length === 1 ? '' : 's'} in that folder?`)) return;
     // Every file opens as a tab, base file first, so it's clear what was loaded.
     replaceAll(picked, names.includes(BASE_FILE) ? BASE_FILE : names[0], names, null, themes);
+    track('open-folder');
   }
 
   /** Put a GitHub repo's resumes in the editor, replacing what's here (after asking). */
@@ -341,6 +359,7 @@
       base: { ...loaded.files },
     }, loaded.themes);
     tab = 'preview';
+    track('github-open-repo');
     return true;
   }
 
@@ -349,6 +368,7 @@
   }
 
   function downloadAll() {
+    track('download-all');
     download('resumes.zip', zipFiles($state.snapshot(files)), 'application/zip');
   }
 
@@ -484,7 +504,7 @@
     <div class="tabs" role="tablist" aria-label="Side panel">
       <button role="tab" type="button" aria-selected={tab === 'preview'} onclick={() => (tab = 'preview')}>Preview</button>
       {#if !partial}
-        <button role="tab" type="button" aria-selected={tab === 'themes'} onclick={() => (tab = 'themes')}>Themes</button>
+        <button role="tab" type="button" aria-selected={tab === 'themes'} onclick={openThemesTab}>Themes</button>
       {/if}
       <button role="tab" type="button" aria-selected={tab === 'problems'} onclick={() => (tab = 'problems')}>
         Problems
@@ -528,7 +548,7 @@
           current={look?.theme.name ?? 'classic'}
           file={active}
           {stale}
-          onPick={(name) => setLayout('theme', name)}
+          onPick={(name) => pickTheme(name, 'gallery')}
         />
       </div>
     {/if}

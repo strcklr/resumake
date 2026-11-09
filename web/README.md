@@ -57,6 +57,40 @@ security notes are in [`worker/README.md`](../worker/README.md); the client live
 runs only its own scripts, and connects only to itself, `api.github.com` and the Worker. For that,
 the schema validator is compiled at build time instead of with `new Function` in the browser.
 
+## What's counted
+
+The editor can count how it's used, with a self-hosted [Umami](https://umami.is) instance
+([#24](https://github.com/strcklr/resumake/issues/24)). It's off unless the build sets these:
+
+| Build variable | Actions variable | |
+|---|---|---|
+| `VITE_UMAMI_SRC` | `RESUMAKE_UMAMI_SRC` | Umami's tracker script (`https://…/script.js`) |
+| `VITE_UMAMI_WEBSITE_ID` | `RESUMAKE_UMAMI_WEBSITE_ID` | The website's ID in Umami |
+| `VITE_UMAMI_DOMAINS` | (set in `web.yml`) | Only count these hostnames, so local builds aren't counted |
+
+When set, `vite.config.ts` adds Umami's script tag, and the CSP allows that one origin in
+`script-src` and `connect-src`. What's sent:
+
+- **Page views,** without the query string or hash (the sign-in callback carries a one-time code
+  there). No cookies; Do Not Track is honoured.
+- **These events, by name** (`src/lib/analytics.ts`):
+
+  | Event | When | Data |
+  |---|---|---|
+  | `load-sample`, `open-files`, `open-folder` | Files loaded | |
+  | `github-sign-in` | Sign-in started | |
+  | `github-repo-template` | "Create your resumes repo" clicked | |
+  | `github-open-repo` | A repo's files opened | |
+  | `github-save` | Saved to GitHub | `pr`: whether a pull request was opened |
+  | `new-file` | New tailored file | |
+  | `theme-pick` | Theme changed | `theme` (a built-in name, or `custom`), `via` (`picker` or `gallery`) |
+  | `accent-pick` | Colour changed | `reset`: whether it was removed |
+  | `themes-tab` | Themes tab opened | |
+  | `print-pdf`, `download-html`, `download-all` | Output | |
+
+Never sent: resume text, file names, repo or branch names, the names of a repo's own themes, or
+anything typed.
+
 ## Deploying
 
 `.github/workflows/web.yml` deploys `web/dist/` to GitHub Pages on every push to `main` that touches
