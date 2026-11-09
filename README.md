@@ -1,5 +1,9 @@
 # resumake
 
+https://resumake.chasestrickler.com/
+
+## Overview
+
 Write your resume once in YAML; build it to **PDF**, **Word (.docx)**, **HTML** and **Markdown**.
 Keep a default resume plus any number of tailored variants that inherit from it, and let CI
 publish fresh builds every time you merge to `main`.
@@ -10,6 +14,16 @@ resumes/
 └── tailored/
     └── example-platform.yml      # extends default.yml, overrides a few fields
 ```
+
+## Disclaimer
+
+This is a heavily vibe-coded project that I had been thinking about for a long time, but never had
+the time to take on seriously. With a Claude subscription and some time to think about this as 
+I update my portfolio, this became feasible to complete in a weekend.
+
+I add this section only to clarify that I've participated in the ideation and high level 
+direction of this project, but have not written any of the code myself (and don't see that
+changing in the near future).
 
 ## Quick start
 
