@@ -3,9 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Edit and validate a resumake YAML resume in your browser." />
-    <title>resumake editor</title>
+    <title>resumake: free resume builder, from YAML to PDF, Word and HTML</title>
+    <meta
+      name="description"
+      content="Free, open-source resume builder. Write your resume once in YAML and export ATS-friendly PDF, Word, HTML and Markdown in seven themes. Runs in your browser: nothing is uploaded."
+    />
+    <link rel="canonical" href="https://resumake.chasestrickler.com/" />
+    <meta name="theme-color" content="#235a8c" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23235a8c'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='18' fill='white' text-anchor='middle'%3Er%3C/text%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Link previews (Slack, LinkedIn, X, iMessage): public/og.png is made by scripts/og-image.sh. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="resumake" />
+    <meta property="og:url" content="https://resumake.chasestrickler.com/" />
+    <meta property="og:title" content="resumake: your resume, written once" />
+    <meta
+      property="og:description"
+      content="Write your resume once in YAML. Export PDF, Word, HTML and Markdown in seven ATS-friendly themes, with a live preview in your browser."
+    />
+    <meta property="og:image" content="https://resumake.chasestrickler.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="resumake: a YAML resume rendered in the classic, modern and executive themes" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Structured data for search engines: a free web app. Data only, never run as script. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "resumake",
+        "url": "https://resumake.chasestrickler.com/",
+        "description": "Free, open-source resume builder: write your resume once in YAML and export PDF, Word, HTML and Markdown in seven ATS-friendly themes.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web browser, Windows, macOS, Linux",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "isAccessibleForFree": true,
+        "author": { "@type": "Person", "name": "Chase Strickler", "url": "https://chasestrickler.com" },
+        "sameAs": ["https://github.com/strcklr/resumake"]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>

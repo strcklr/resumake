@@ -4,7 +4,7 @@ import standaloneCode from 'ajv/dist/standalone/index.js';
 import { createReadStream, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import type { Plugin } from 'vite';
+import { createServer, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { analyticsConfig, scriptTag, type AnalyticsConfig } from './src/lib/analytics';
 
@@ -102,8 +102,35 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
+/**
+ * Put the splash screen and footer into index.html as HTML at build time (src/prerender.ts), so
+ * crawlers that don't run JavaScript, and link previews, see the page's headline, text and links.
+ */
+function prerenderSplash(): Plugin {
+  return {
+    name: 'prerender-splash',
+    apply: 'build',
+    async transformIndexHtml(html) {
+      const server = await createServer({
+        configFile: false,
+        logLevel: 'error',
+        plugins: [svelte()],
+        server: { middlewareMode: true, hmr: false, ws: false },
+        appType: 'custom',
+        optimizeDeps: { noDiscovery: true, include: [] }, // nothing to pre-bundle for one SSR render
+      });
+      try {
+        const { prerender } = (await server.ssrLoadModule('/src/prerender.ts')) as { prerender: () => string };
+        return html.replace('<div id="app"></div>', `<div id="app">${prerender()}</div>`);
+      } finally {
+        await server.close();
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [svelte(), precompiledValidator(), selfHostPyodide(), contentSecurityPolicy()],
+  plugins: [svelte(), precompiledValidator(), selfHostPyodide(), prerenderSplash(), contentSecurityPolicy()],
   // Relative asset paths, so the build works from any URL path (GitHub Pages, a subfolder, a file server).
   base: './',
   worker: { format: 'es' },
