@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { analyticsConfig, scriptTag, type AnalyticsConfig } from './src/lib/analytics';
 
 /**
  * Serve Pyodide's runtime from this site under `pyodide/` (dev server and build), instead of
@@ -60,23 +61,33 @@ function precompiledValidator(): Plugin {
 
 /**
  * A strict Content Security Policy for the built site (the dev server needs inline scripts, so it's
- * build-only). The page can run only its own scripts, compile WebAssembly (Pyodide), and connect only
- * to itself, GitHub's API and the sign-in Worker. That limits what an injected script could do with a
+ * build-only). The page can run only its own scripts (plus Umami's, when usage counting is configured),
+ * compile WebAssembly (Pyodide), and connect only to itself, GitHub's API, the sign-in Worker and Umami. That limits what an injected script could do with a
  * GitHub token. Inline styles are allowed: CodeMirror, Svelte and the resume's own template use them.
  */
 function contentSecurityPolicy(): Plugin {
   let connect = "'self' https://api.github.com";
+  let script = "'self' 'wasm-unsafe-eval'";
+  let analytics: AnalyticsConfig | null = null;
   return {
     name: 'content-security-policy',
     apply: 'build',
     configResolved(cfg) {
       const auth = cfg.env.VITE_AUTH_URL as string | undefined;
       if (auth) connect += ` ${new URL(auth).origin}`;
+      // Usage counts (strcklr/resumake#24): only when configured, and only Umami's own origin.
+      analytics = analyticsConfig(cfg.env);
+      if (analytics) {
+        const origin = new URL(analytics.src).origin;
+        script += ` ${origin}`;
+        connect += ` ${origin}`;
+      }
     },
     transformIndexHtml(html) {
+      if (analytics) html = html.replace('</head>', `  ${scriptTag(analytics)}\n  </head>`);
       const policy = [
         "default-src 'self'",
-        "script-src 'self' 'wasm-unsafe-eval'",
+        `script-src ${script}`,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
         "font-src 'self' data:",

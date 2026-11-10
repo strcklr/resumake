@@ -3,6 +3,7 @@
   // edited and deleted file, to a new branch (with a pull request) or an existing one. Then follow
   // the repo's build workflow for that commit.
   import { onDestroy } from 'svelte';
+  import { track } from './lib/analytics';
   import type { Source } from './lib/files';
   import type { Files } from './lib/workspace';
   import {
@@ -119,6 +120,7 @@
         }
       }
       result = done;
+      track('github-save', { pr: Boolean(done.pr) });
       onSaved({ ...source, branch, commit: saved.commit, base: snapshot });
       mode = 'existing';
       existingBranch = branch;
