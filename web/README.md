@@ -91,6 +91,18 @@ When set, `vite.config.ts` adds Umami's script tag, and the CSP allows that one 
 Never sent: resume text, file names, repo or branch names, the names of a repo's own themes, or
 anything typed.
 
+## Search engines and link previews
+
+- **Prerendered splash:** at build time, `prerenderSplash` (vite.config.ts) renders the splash screen
+  and footer to HTML (`src/prerender.ts`) and puts it in `index.html`. Crawlers that don't run
+  JavaScript, and link previews, see the real headline, text and links. `main.ts` swaps it for the
+  live app on load; the markup is the same, so nothing moves.
+- **`index.html`:** title, description, canonical URL, Open Graph and Twitter tags, and Schema.org
+  `SoftwareApplication` data (JSON-LD, which the CSP allows because it's never run as script).
+- **`public/`:** `robots.txt`, `sitemap.xml`, the link-preview image `og.png` (1200×630) and
+  `apple-touch-icon.png`. Regenerate the two images with `scripts/og-image.sh`, which renders the
+  sample resume in three themes; it needs resumake, `pdftoppm` and Playwright.
+
 ## Deploying
 
 `.github/workflows/web.yml` deploys `web/dist/` to GitHub Pages on every push to `main` that touches
